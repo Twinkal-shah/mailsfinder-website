@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Us - Mailsfinder</title>
+    <meta name="description" content="Get in touch with Mailsfinder. We're here to help with your email finding and verification needs.">
+    
+    <!-- Preconnect for performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Google Fonts - Bricolage Grotesque -->
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200;12..96,300;12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'bricolage': ['Bricolage Grotesque', 'sans-serif'],
+                    },
+                    colors: {
+                        'primary': '#2563EB',
+                        'accent': '#10B981',
+                        'text-dark': '#111827',
+                        'text-gray': '#6B7280',
+                        'bg-light': '#F9FAFB',
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.6s ease-in-out',
+                        'slide-up': 'slideUp 0.8s ease-out',
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        slideUp: {
+                            '0%': { opacity: '0', transform: 'translateY(30px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Custom styles -->
+    <link rel="stylesheet" href="CSS/style.css">
+    
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .hero-pattern {
+            background-image: 
+                radial-gradient(circle at 25% 25%, rgba(37, 99, 235, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 75% 75%, rgba(16, 185, 129, 0.1) 0%, transparent 50%);
+        }
+        
+        .card-shadow {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: box-shadow 0.3s ease;
+        }
+        
+        .card-shadow:hover {
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+    </style>
+</head>
+<body class="font-bricolage text-text-dark">
+    
+    <!-- Navigation -->
+    <nav class="fixed top-0 w-full bg-white/95 backdrop-blur-sm border-b border-gray-200 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <a href="index.html" class="text-2xl font-bold text-primary">Mailsfinder</a>
+                    </div>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="index.html#how-it-works" class="text-text-gray hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors">How It Works</a>
+                        <a href="index.html#pricing" class="text-text-gray hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors">Pricing</a>
+                        <a href="about.html" class="text-text-gray hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors">About</a>
+                        <a href="contact.html" class="text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors">Contact</a>
+                        <a href="email-finder.html" class="text-text-gray hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors">Email Finder</a>
+                        <a href="email-verifier.html" class="text-text-gray hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors">Email Verifier</a>
+                    </div>
+                </div>
+                <div class="hidden md:block">
+                    <a href="login.html" class="bg-primary hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors inline-block">
+                        Start Finding Emails
+                    </a>
+                </div>
+                <!-- Dark Mode Toggle -->
+                <div class="hidden md:block ml-4">
+                    <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                        <input type="checkbox" name="darkModeToggle" id="darkModeToggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" />
+                        <label for="darkModeToggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                    </div>
+                    <label for="darkModeToggle" class="text-sm text-text-gray cursor-pointer">
+                        <i class="fas fa-moon"></i>
+                    </label>
+                </div>
+                <!-- Mobile menu button -->
+                <div class="md:hidden">
+                    <button type="button" class="text-text-gray hover:text-primary focus:outline-none focus:text-primary" onclick="toggleMobileMenu()">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Mobile menu -->
+        <div id="mobile-menu" class="md:hidden hidden">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white border-t border-gray-200">
+                <a href="index.html#how-it-works" class="text-text-gray hover:text-primary block px-3 py-2 rounded-md text-base font-medium">How It Works</a>
+                <a href="index.html#pricing" class="text-text-gray hover:text-primary block px-3 py-2 rounded-md text-base font-medium">Pricing</a>
+                <a href="about.html" class="text-text-gray hover:text-primary block px-3 py-2 rounded-md text-base font-medium">About</a>
+                <a href="contact.html" class="text-primary block px-3 py-2 rounded-md text-base font-medium">Contact</a>
+                <a href="email-finder.html" class="text-text-gray hover:text-primary block px-3 py-2 rounded-md text-base font-medium">Email Finder</a>
+                <a href="email-verifier.html" class="text-text-gray hover:text-primary block px-3 py-2 rounded-md text-base font-medium">Email Verifier</a>
+                <a href="login.html" class="w-full text-left bg-primary hover:bg-blue-700 text-white px-3 py-2 rounded-md text-base font-medium transition-colors mt-2 block">
+                    Start Finding Emails
+                </a>
+                <!-- Dark Mode Toggle for Mobile -->
+                <div class="flex items-center justify-between px-3 py-2">
+                    <span class="text-text-gray">Dark Mode</span>
+                    <div class="relative inline-block w-10 align-middle select-none transition duration-200 ease-in">
+                        <input type="checkbox" name="darkModeToggleMobile" id="darkModeToggleMobile" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" />
+                        <label for="darkModeToggleMobile" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="pt-24 pb-16 lg:pt-32 lg:pb-24 hero-pattern">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center">
+                <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-text-dark mb-6 animate-fade-in">
+                    Get in <span class="text-primary">Touch</span>
+                </h1>
+                <p class="text-xl text-text-gray mb-8 max-w-3xl mx-auto animate-slide-up">
+                    Have questions about Mailsfinder? We're here to help. Reach out to our team and we'll get back to you within 24 hours.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Form Section -->
+    <section class="py-16 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                <!-- Contact Form -->
+                <div>
+                    <h2 class="text-3xl font-bold text-text-dark mb-6">Send us a message</h2>
+                    <form class="space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label for="firstName" class="block text-sm font-medium text-text-dark mb-2">First Name</label>
+                                <input type="text" id="firstName" name="firstName" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                            </div>
+                            <div>
+                                <label for="lastName" class="block text-sm font-medium text-text-dark mb-2">Last Name</label>
+                                <input type="text" id="lastName" name="lastName" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="email" class="block text-sm font-medium text-text-dark mb-2">Email Address</label>
+                            <input type="email" id="email" name="email" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                        </div>
+                        <div>
+                            <label for="company" class="block text-sm font-medium text-text-dark mb-2">Company</label>
+                            <input type="text" id="company" name="company" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                        </div>
+                        <div>
+                            <label for="subject" class="block text-sm font-medium text-text-dark mb-2">Subject</label>
+                            <select id="subject" name="subject" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                                <option value="">Select a subject</option>
+                                <option value="general">General Inquiry</option>
+                                <option value="support">Technical Support</option>
+                                <option value="billing">Billing Question</option>
+                                <option value="partnership">Partnership Opportunity</option>
+                                <option value="feedback">Feedback</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="message" class="block text-sm font-medium text-text-dark mb-2">Message</label>
+                            <textarea id="message" name="message" rows="6" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="Tell us how we can help you..." required></textarea>
+                        </div>
+                        <button type="submit" class="w-full bg-primary hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+                            Send Message
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Contact Information -->
+                <div>
+                    <h2 class="text-3xl font-bold text-text-dark mb-6">Contact Information</h2>
+                    <div class="space-y-8">
+                        <div class="flex items-start space-x-4">
+                            <div class="w-12 h-12 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-envelope text-white"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-bold text-text-dark mb-2">Email Us</h3>
+                                <p class="text-text-gray mb-2">Get in touch via email for any inquiries</p>
+                                <a href="mailto:support@mailsfinder.com" class="text-primary hover:underline">support@mailsfinder.com</a>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start space-x-4">
+                            <div class="w-12 h-12 bg-accent rounded-lg flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-comments text-white"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-bold text-text-dark mb-2">Live Chat</h3>
+                                <p class="text-text-gray mb-2">Chat with our support team in real-time</p>
+                                <p class="text-sm text-text-gray">Available 9 AM - 6 PM EST, Monday - Friday</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start space-x-4">
+                            <div class="w-12 h-12 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-phone text-white"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-bold text-text-dark mb-2">Phone Support</h3>
+                                <p class="text-text-gray mb-2">Speak directly with our team</p>
+                                <a href="tel:+1-555-123-4567" class="text-primary hover:underline">+1 (555) 123-4567</a>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start space-x-4">
+                            <div class="w-12 h-12 bg-accent rounded-lg flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-map-marker-alt text-white"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-bold text-text-dark mb-2">Office</h3>
+                                <p class="text-text-gray">123 Business Ave<br>Suite 100<br>San Francisco, CA 94105</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Response Time -->
+                    <div class="mt-8 p-6 bg-bg-light rounded-lg">
+                        <h3 class="text-lg font-bold text-text-dark mb-2">Response Time</h3>
+                        <p class="text-text-gray text-sm mb-4">
+                            We typically respond to all inquiries within 24 hours during business days. For urgent matters, please call our support line.
+                        </p>
+                        <div class="flex items-center space-x-2">
+                            <i class="fas fa-clock text-primary"></i>
+                            <span class="text-sm text-text-gray">Average response time: 4 hours</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section class="py-16 bg-bg-light">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-text-dark mb-4">Frequently Asked Questions</h2>
+                <p class="text-text-gray max-w-2xl mx-auto">
+                    Find quick answers to common questions about Mailsfinder.
+                </p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="bg-white rounded-lg p-6 card-shadow">
+                    <h3 class="text-lg font-bold text-text-dark mb-3">How accurate are your email addresses?</h3>
+                    <p class="text-text-gray text-sm">
+                        Our email addresses have a 99.5% accuracy rate. We verify each email through multiple data sources and real-time validation.
+                    </p>
+                </div>
+                <div class="bg-white rounded-lg p-6 card-shadow">
+                    <h3 class="text-lg font-bold text-text-dark mb-3">Do you offer a free trial?</h3>
+                    <p class="text-text-gray text-sm">
+                        Yes! We offer 50 free credits when you sign up. No credit card required to get started.
+                    </p>
+                </div>
+                <div class="bg-white rounded-lg p-6 card-shadow">
+                    <h3 class="text-lg font-bold text-text-dark mb-3">What's your refund policy?</h3>
+                    <p class="text-text-gray text-sm">
+                        We offer a 30-day money-back guarantee. If you're not satisfied, we'll refund your purchase in full.
+                    </p>
+                </div>
+                <div class="bg-white rounded-lg p-6 card-shadow">
+                    <h3 class="text-lg font-bold text-text-dark mb-3">Can I integrate with my CRM?</h3>
+                    <p class="text-text-gray text-sm">
+                        Absolutely! We offer integrations with popular CRMs like Salesforce, HubSpot, and Pipedrive.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-16 bg-primary">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="text-3xl font-bold text-white mb-4">
+                Ready to Get Started?
+            </h2>
+            <p class="text-blue-100 mb-8 max-w-2xl mx-auto">
+                Join thousands of professionals who trust Mailsfinder for their email prospecting needs.
+            </p>
+            <button class="bg-white text-primary hover:bg-gray-100 px-8 py-3 rounded-lg font-bold text-lg transition-colors">
+                Start Finding Emails
+            </button>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-text-dark text-white py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <h3 class="text-2xl font-bold mb-4">Mailsfinder</h3>
+                    <p class="text-gray-400 mb-4">
+                        The most affordable email finding & verification tool for modern sales teams.
+                    </p>
+                </div>
+                <div>
+                    <h4 class="font-bold mb-4">Product</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="email-finder.html" class="hover:text-white transition-colors">Email Finder</a></li>
+                        <li><a href="email-verifier.html" class="hover:text-white transition-colors">Email Verifier</a></li>
+                        <li><a href="index.html#pricing" class="hover:text-white transition-colors">Pricing</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-bold mb-4">Company</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="about.html" class="hover:text-white transition-colors">About Us</a></li>
+                        <li><a href="contact.html" class="hover:text-white transition-colors">Contact</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Blog</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-bold mb-4">Legal</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="privacy-policy.html" class="hover:text-white transition-colors">Privacy Policy</a></li>
+                        <li><a href="terms-of-service.html" class="hover:text-white transition-colors">Terms of Service</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
+                <p>&copy; 2024 Mailsfinder. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/animations.js"></script>
+</body>
+</html>

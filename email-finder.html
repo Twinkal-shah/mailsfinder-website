@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Finder - Mailsfinder</title>
+    <meta name="description" content="Find anyone's email address with Mailsfinder's powerful email finder tool. High accuracy rates and affordable pricing.">
+    
+    <!-- Preconnect for performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Google Fonts - Bricolage Grotesque -->
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200;12..96,300;12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'bricolage': ['Bricolage Grotesque', 'sans-serif'],
+                    },
+                    colors: {
+                        'primary': '#2563EB',
+                        'accent': '#10B981',
+                        'text-dark': '#111827',
+                        'text-gray': '#6B7280',
+                        'bg-light': '#F9FAFB',
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.6s ease-in-out',
+                        'slide-up': 'slideUp 0.8s ease-out',
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        slideUp: {
+                            '0%': { opacity: '0', transform: 'translateY(30px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Custom styles -->
+    <link rel="stylesheet" href="CSS/style.css">
+    
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .hero-pattern {
+            background-image: 
+                radial-gradient(circle at 25% 25%, rgba(37, 99, 235, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 75% 75%, rgba(16, 185, 129, 0.1) 0%, transparent 50%);
+        }
+        
+        .card-shadow {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: box-shadow 0.3s ease;
+        }
+        
+        .card-shadow:hover {
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+    </style>
+</head>
+<body class="font-bricolage text-text-dark">
+    
+    <!-- Navigation -->
+    <nav class="fixed top-0 w-full bg-white/95 backdrop-blur-sm border-b border-gray-200 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <a href="index.html" class="text-2xl font-bold text-primary">Mailsfinder</a>
+                    </div>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="index.html#how-it-works" class="text-text-gray hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors">How It Works</a>
+                        <a href="index.html#pricing" class="text-text-gray hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors">Pricing</a>
+                        <a href="about.html" class="text-text-gray hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors">About</a>
+                        <a href="contact.html" class="text-text-gray hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors">Contact</a>
+                        <a href="email-finder.html" class="text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors">Email Finder</a>
+                        <a href="email-verifier.html" class="text-text-gray hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors">Email Verifier</a>
+                    </div>
+                </div>
+                <div class="hidden md:block">
+                    <button class="bg-primary hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+                        Start Finding Emails
+                    </button>
+                </div>
+                <!-- Dark Mode Toggle -->
+                <div class="hidden md:block ml-4">
+                    <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                        <input type="checkbox" name="darkModeToggle" id="darkModeToggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" />
+                        <label for="darkModeToggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                    </div>
+                    <label for="darkModeToggle" class="text-sm text-text-gray cursor-pointer">
+                        <i class="fas fa-moon"></i>
+                    </label>
+                </div>
+                <!-- Mobile menu button -->
+                <div class="md:hidden">
+                    <button type="button" class="text-text-gray hover:text-primary focus:outline-none focus:text-primary" onclick="toggleMobileMenu()">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Mobile menu -->
+        <div id="mobile-menu" class="md:hidden hidden">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white border-t border-gray-200">
+                <a href="index.html#how-it-works" class="text-text-gray hover:text-primary block px-3 py-2 rounded-md text-base font-medium">How It Works</a>
+                <a href="index.html#pricing" class="text-text-gray hover:text-primary block px-3 py-2 rounded-md text-base font-medium">Pricing</a>
+                <a href="about.html" class="text-text-gray hover:text-primary block px-3 py-2 rounded-md text-base font-medium">About</a>
+                <a href="contact.html" class="text-text-gray hover:text-primary block px-3 py-2 rounded-md text-base font-medium">Contact</a>
+                <a href="email-finder.html" class="text-primary block px-3 py-2 rounded-md text-base font-medium">Email Finder</a>
+                <a href="email-verifier.html" class="text-text-gray hover:text-primary block px-3 py-2 rounded-md text-base font-medium">Email Verifier</a>
+                <button class="w-full text-left bg-primary hover:bg-blue-700 text-white px-3 py-2 rounded-md text-base font-medium transition-colors mt-2">
+                    Start Finding Emails
+                </button>
+                <!-- Dark Mode Toggle for Mobile -->
+                <div class="flex items-center justify-between px-3 py-2">
+                    <span class="text-text-gray">Dark Mode</span>
+                    <div class="relative inline-block w-10 align-middle select-none transition duration-200 ease-in">
+                        <input type="checkbox" name="darkModeToggleMobile" id="darkModeToggleMobile" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" />
+                        <label for="darkModeToggleMobile" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="pt-24 pb-16 lg:pt-32 lg:pb-24 hero-pattern">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center">
+                <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-text-dark mb-6 animate-fade-in">
+                    Find Any <span class="text-primary">Email Address</span>
+                </h1>
+                <p class="text-xl text-text-gray mb-8 max-w-3xl mx-auto animate-slide-up">
+                    Discover professional email addresses with our powerful email finder. 99.5% accuracy rate guaranteed.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Email Finder Tool -->
+    <section class="py-16 bg-white">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="bg-white rounded-2xl card-shadow p-8">
+                <h2 class="text-2xl font-bold text-text-dark mb-6 text-center">Email Finder Tool</h2>
+                <form class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="firstName" class="block text-sm font-medium text-text-dark mb-2">First Name</label>
+                            <input type="text" id="firstName" name="firstName" placeholder="John" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                        </div>
+                        <div>
+                            <label for="lastName" class="block text-sm font-medium text-text-dark mb-2">Last Name</label>
+                            <input type="text" id="lastName" name="lastName" placeholder="Smith" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="domain" class="block text-sm font-medium text-text-dark mb-2">Company Domain</label>
+                        <input type="text" id="domain" name="domain" placeholder="company.com" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                    </div>
+                    <button type="submit" class="w-full bg-primary hover:bg-blue-700 text-white px-6 py-4 rounded-lg font-bold text-lg transition-colors">
+                        <i class="fas fa-search mr-2"></i>
+                        Find Email Address
+                    </button>
+                </form>
+                
+                <!-- Results Section (Hidden by default) -->
+                <div id="results" class="mt-8 p-6 bg-bg-light rounded-lg hidden">
+                    <h3 class="text-lg font-bold text-text-dark mb-4">Search Results</h3>
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between p-4 bg-white rounded-lg border">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-accent rounded-full flex items-center justify-center">
+                                    <i class="fas fa-check text-white"></i>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-text-dark">john.smith@company.com</p>
+                                    <p class="text-sm text-text-gray">Confidence: 99%</p>
+                                </div>
+                            </div>
+                            <button class="text-primary hover:text-blue-700 font-medium">
+                                <i class="fas fa-copy mr-1"></i>
+                                Copy
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="py-16 bg-bg-light">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-text-dark mb-4">Why Choose Our Email Finder?</h2>
+                <p class="text-text-gray max-w-2xl mx-auto">
+                    Our email finder uses advanced algorithms and multiple data sources to provide the most accurate results.
+                </p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="bg-white rounded-lg p-6 card-shadow text-center">
+                    <div class="w-16 h-16 bg-primary rounded-full mx-auto mb-4 flex items-center justify-center">
+                        <i class="fas fa-bullseye text-white text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-text-dark mb-2">99.5% Accuracy</h3>
+                    <p class="text-text-gray text-sm">
+                        Our advanced verification system ensures the highest accuracy rates in the industry.
+                    </p>
+                </div>
+                <div class="bg-white rounded-lg p-6 card-shadow text-center">
+                    <div class="w-16 h-16 bg-accent rounded-full mx-auto mb-4 flex items-center justify-center">
+                        <i class="fas fa-bolt text-white text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-text-dark mb-2">Instant Results</h3>
+                    <p class="text-text-gray text-sm">
+                        Get email addresses in seconds, not minutes. Our system processes requests instantly.
+                    </p>
+                </div>
+                <div class="bg-white rounded-lg p-6 card-shadow text-center">
+                    <div class="w-16 h-16 bg-primary rounded-full mx-auto mb-4 flex items-center justify-center">
+                        <i class="fas fa-database text-white text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-text-dark mb-2">Massive Database</h3>
+                    <p class="text-text-gray text-sm">
+                        Access to millions of verified email addresses from companies worldwide.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="py-16 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-text-dark mb-4">How It Works</h2>
+                <p class="text-text-gray max-w-2xl mx-auto">
+                    Our email finder uses a simple 3-step process to find accurate email addresses.
+                </p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="text-center">
+                    <div class="w-20 h-20 bg-primary rounded-full mx-auto mb-4 flex items-center justify-center">
+                        <span class="text-white text-2xl font-bold">1</span>
+                    </div>
+                    <h3 class="text-xl font-bold text-text-dark mb-2">Enter Details</h3>
+                    <p class="text-text-gray text-sm">
+                        Provide the person's name and company domain to start the search.
+                    </p>
+                </div>
+                <div class="text-center">
+                    <div class="w-20 h-20 bg-accent rounded-full mx-auto mb-4 flex items-center justify-center">
+                        <span class="text-white text-2xl font-bold">2</span>
+                    </div>
+                    <h3 class="text-xl font-bold text-text-dark mb-2">AI Processing</h3>
+                    <p class="text-text-gray text-sm">
+                        Our AI algorithms search through millions of data points to find the email.
+                    </p>
+                </div>
+                <div class="text-center">
+                    <div class="w-20 h-20 bg-primary rounded-full mx-auto mb-4 flex items-center justify-center">
+                        <span class="text-white text-2xl font-bold">3</span>
+                    </div>
+                    <h3 class="text-xl font-bold text-text-dark mb-2">Get Results</h3>
+                    <p class="text-text-gray text-sm">
+                        Receive verified email addresses with confidence scores instantly.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-16 bg-primary">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="text-3xl font-bold text-white mb-4">
+                Start Finding Emails Today
+            </h2>
+            <p class="text-blue-100 mb-8 max-w-2xl mx-auto">
+                Join thousands of professionals who use Mailsfinder to find accurate email addresses.
+            </p>
+            <button class="bg-white text-primary hover:bg-gray-100 px-8 py-3 rounded-lg font-bold text-lg transition-colors">
+                Get 50 Free Credits
+            </button>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-text-dark text-white py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <h3 class="text-2xl font-bold mb-4">Mailsfinder</h3>
+                    <p class="text-gray-400 mb-4">
+                        The most affordable email finding & verification tool for modern sales teams.
+                    </p>
+                </div>
+                <div>
+                    <h4 class="font-bold mb-4">Product</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="email-finder.html" class="hover:text-white transition-colors">Email Finder</a></li>
+                        <li><a href="email-verifier.html" class="hover:text-white transition-colors">Email Verifier</a></li>
+                        <li><a href="index.html#pricing" class="hover:text-white transition-colors">Pricing</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-bold mb-4">Company</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="about.html" class="hover:text-white transition-colors">About Us</a></li>
+                        <li><a href="contact.html" class="hover:text-white transition-colors">Contact</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Blog</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-bold mb-4">Legal</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="privacy-policy.html" class="hover:text-white transition-colors">Privacy Policy</a></li>
+                        <li><a href="terms-of-service.html" class="hover:text-white transition-colors">Terms of Service</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
+                <p>&copy; 2024 Mailsfinder. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/animations.js"></script>
+</body>
+</html>

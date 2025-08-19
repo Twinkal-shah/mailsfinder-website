@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Us - Mailsfinder</title>
+    <meta name="description" content="Learn about Mailsfinder's mission to provide the most affordable email finding and verification tools for sales teams worldwide.">
+    
+    <!-- Preconnect for performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Google Fonts - Bricolage Grotesque -->
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200;12..96,300;12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'bricolage': ['Bricolage Grotesque', 'sans-serif'],
+                    },
+                    colors: {
+                        'primary': '#6366F1',
+                        'primary-dark': '#4F46E5',
+                        'accent': '#8B5CF6',
+                        'accent-light': '#A78BFA',
+                        'text-dark': '#1E293B',
+                        'text-gray': '#64748B',
+                        'text-muted': '#94A3B8',
+                        'bg-light': '#F8FAFC',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="CSS/style.css">
+</head>
+<body class="font-bricolage text-text-dark">
+    
+    <!-- Navigation -->
+    <nav class="fixed top-0 w-full bg-white/95 backdrop-blur-sm border-b border-gray-200 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <a href="index.html" class="text-2xl font-bold text-primary">Mailsfinder</a>
+                    </div>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="index.html#pricing" class="text-text-gray hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors">Pricing</a>
+                        <a href="about.html" class="text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors">About Us</a>
+                        <a href="contact.html" class="text-text-gray hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors">Contact Us</a>
+                    </div>
+                </div>
+                <div class="hidden md:block">
+                    <a href="login.html" class="bg-primary hover:bg-primary-dark text-white px-6 py-2 rounded-lg font-medium transition-colors inline-block">
+                        Start Finding Emails
+                    </a>
+                </div>
+                <!-- Mobile menu button -->
+                <div class="md:hidden">
+                    <button type="button" class="text-text-gray hover:text-primary focus:outline-none focus:text-primary" onclick="toggleMobileMenu()">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Mobile menu -->
+        <div id="mobile-menu" class="md:hidden hidden">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white border-t border-gray-200">
+                <a href="index.html#pricing" class="text-text-gray hover:text-primary block px-3 py-2 rounded-md text-base font-medium">Pricing</a>
+                <a href="about.html" class="text-primary block px-3 py-2 rounded-md text-base font-medium">About Us</a>
+                <a href="contact.html" class="text-text-gray hover:text-primary block px-3 py-2 rounded-md text-base font-medium">Contact Us</a>
+                <a href="login.html" class="w-full text-left bg-primary hover:bg-primary-dark text-white px-3 py-2 rounded-md text-base font-medium transition-colors mt-2 block">
+                    Start Finding Emails
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="pt-24 pb-16 lg:pt-32 lg:pb-24 hero-pattern">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center">
+                <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-text-dark mb-6 animate-fade-in">
+                    About <span class="text-primary">Mailsfinder</span>
+                </h1>
+                <p class="text-xl text-text-gray mb-8 max-w-3xl mx-auto animate-slide-up">
+                    We're on a mission to make email finding and verification accessible to everyone with the most affordable rates in the industry.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Our Story Section -->
+    <section class="py-16 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                <div>
+                    <h2 class="text-3xl font-bold text-text-dark mb-6">Our Story</h2>
+                    <p class="text-text-gray mb-6">
+                        Founded in 2023, Mailsfinder was born out of frustration with expensive email finding tools that charged premium prices for basic functionality. Our founders, experienced in sales and marketing, knew there had to be a better way.
+                    </p>
+                    <p class="text-text-gray mb-6">
+                        We built Mailsfinder with one simple goal: provide the most accurate email finding and verification service at prices that don't break the bank. Today, we're trusted by thousands of SDRs, BDRs, and outbound agencies worldwide.
+                    </p>
+                    <div class="flex items-center space-x-4">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-primary">50K+</div>
+                            <div class="text-sm text-text-gray">Happy Users</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-primary">10M+</div>
+                            <div class="text-sm text-text-gray">Emails Found</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-primary">99.5%</div>
+                            <div class="text-sm text-text-gray">Accuracy Rate</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="relative">
+                    <div class="bg-gradient-to-r from-primary to-accent rounded-lg p-8 text-white">
+                        <h3 class="text-2xl font-bold mb-4">Our Mission</h3>
+                        <p class="mb-4">
+                            To democratize email prospecting by providing enterprise-grade tools at startup-friendly prices.
+                        </p>
+                        <h3 class="text-2xl font-bold mb-4">Our Vision</h3>
+                        <p>
+                            A world where every business, regardless of size, has access to powerful email finding and verification tools.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Team Section -->
+    <section class="py-16 bg-bg-light">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-text-dark mb-4">Meet Our Team</h2>
+                <p class="text-text-gray max-w-2xl mx-auto">
+                    Our diverse team of engineers, marketers, and sales professionals are united by one goal: making your outbound efforts more successful.
+                </p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="bg-white rounded-lg p-6 card-shadow text-center">
+                    <div class="w-24 h-24 bg-primary rounded-full mx-auto mb-4 flex items-center justify-center">
+                        <i class="fas fa-user text-white text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-text-dark mb-2">John Smith</h3>
+                    <p class="text-primary font-medium mb-2">CEO & Co-Founder</p>
+                    <p class="text-text-gray text-sm">
+                        Former VP of Sales with 10+ years in B2B outbound. Passionate about making sales tools accessible to everyone.
+                    </p>
+                </div>
+                <div class="bg-white rounded-lg p-6 card-shadow text-center">
+                    <div class="w-24 h-24 bg-accent rounded-full mx-auto mb-4 flex items-center justify-center">
+                        <i class="fas fa-user text-white text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-text-dark mb-2">Sarah Johnson</h3>
+                    <p class="text-primary font-medium mb-2">CTO & Co-Founder</p>
+                    <p class="text-text-gray text-sm">
+                        Full-stack engineer with expertise in data processing and machine learning. Ensures our platform runs smoothly at scale.
+                    </p>
+                </div>
+                <div class="bg-white rounded-lg p-6 card-shadow text-center">
+                    <div class="w-24 h-24 bg-primary rounded-full mx-auto mb-4 flex items-center justify-center">
+                        <i class="fas fa-user text-white text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-text-dark mb-2">Mike Chen</h3>
+                    <p class="text-primary font-medium mb-2">Head of Product</p>
+                    <p class="text-text-gray text-sm">
+                        Product strategist focused on user experience. Constantly improving our tools based on customer feedback.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Values Section -->
+    <section class="py-16 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-text-dark mb-4">Our Values</h2>
+                <p class="text-text-gray max-w-2xl mx-auto">
+                    These core values guide everything we do at Mailsfinder.
+                </p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div class="text-center">
+                    <div class="w-16 h-16 bg-primary rounded-full mx-auto mb-4 flex items-center justify-center">
+                        <i class="fas fa-dollar-sign text-white text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-text-dark mb-2">Affordability</h3>
+                    <p class="text-text-gray text-sm">
+                        We believe powerful tools shouldn't cost a fortune. Our pricing reflects our commitment to accessibility.
+                    </p>
+                </div>
+                <div class="text-center">
+                    <div class="w-16 h-16 bg-accent rounded-full mx-auto mb-4 flex items-center justify-center">
+                        <i class="fas fa-bullseye text-white text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-text-dark mb-2">Accuracy</h3>
+                    <p class="text-text-gray text-sm">
+                        Every email we find is verified through multiple data sources to ensure the highest accuracy rates.
+                    </p>
+                </div>
+                <div class="text-center">
+                    <div class="w-16 h-16 bg-primary rounded-full mx-auto mb-4 flex items-center justify-center">
+                        <i class="fas fa-heart text-white text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-text-dark mb-2">Customer First</h3>
+                    <p class="text-text-gray text-sm">
+                        Our customers' success is our success. We're here to support you every step of the way.
+                    </p>
+                </div>
+                <div class="text-center">
+                    <div class="w-16 h-16 bg-accent rounded-full mx-auto mb-4 flex items-center justify-center">
+                        <i class="fas fa-rocket text-white text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-text-dark mb-2">Innovation</h3>
+                    <p class="text-text-gray text-sm">
+                        We continuously improve our platform with cutting-edge technology and user feedback.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-16 bg-primary">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="text-3xl font-bold text-white mb-4">
+                Ready to Start Finding Emails?
+            </h2>
+            <p class="text-blue-100 mb-8 max-w-2xl mx-auto">
+                Join thousands of professionals who trust Mailsfinder for their email prospecting needs.
+            </p>
+            <a href="login.html" class="bg-white text-primary hover:bg-gray-100 px-8 py-3 rounded-lg font-bold text-lg transition-colors inline-block">
+                Get Started Today
+            </a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-text-dark text-white py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <!-- Company Info -->
+                <div class="md:col-span-1">
+                    <h3 class="text-2xl font-bold text-primary mb-4">Mailsfinder</h3>
+                    <p class="text-gray-400 mb-4">
+                        The most affordable email finding & verification tool for modern sales teams.
+                    </p>
+                    <div class="flex gap-4">
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                            <i class="fab fa-twitter text-xl"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                            <i class="fab fa-linkedin text-xl"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                            <i class="fab fa-facebook text-xl"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Product -->
+                <div>
+                    <h4 class="font-semibold mb-4">Product</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="email-finder.html" class="hover:text-white transition-colors">Email Finder</a></li>
+                        <li><a href="email-verifier.html" class="hover:text-white transition-colors">Email Verifier</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">API Access</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Integrations</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Resources -->
+                <div>
+                    <h4 class="font-semibold mb-4">Resources</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="#" class="hover:text-white transition-colors">Documentation</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Help Center</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Blog</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Case Studies</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Company -->
+                <div>
+                    <h4 class="font-semibold mb-4">Company</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="about.html" class="hover:text-white transition-colors">About Us</a></li>
+                        <li><a href="contact.html" class="hover:text-white transition-colors">Contact</a></li>
+                        <li><a href="privacy-policy.html" class="hover:text-white transition-colors">Privacy Policy</a></li>
+                        <li><a href="terms-of-service.html" class="hover:text-white transition-colors">Terms of Service</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
+                <p>&copy; 2025 Mailsfinder. All rights reserved. Built with ❤️ for sales teams worldwide.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleMobileMenu() {
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenu.classList.toggle('hidden');
+        }
+    </script>
+</body>
+</html>
