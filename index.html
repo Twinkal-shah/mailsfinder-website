@@ -100,7 +100,7 @@
                         <a href="contact.html" class="text-text-gray hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors">Contact Us</a>
                     </div>
                 </div>
-                <div class="hidden md:block">
+                <div class="hidden md:block auth-button">
                     <a href="login.html" class="bg-primary hover:bg-primary-dark text-white px-6 py-2 rounded-lg font-medium transition-colors inline-block">
                         Start Finding Emails
                     </a>
@@ -120,9 +120,11 @@
                 <a href="#pricing" class="text-text-gray hover:text-primary block px-3 py-2 rounded-md text-base font-medium">Pricing</a>
                 <a href="about.html" class="text-text-gray hover:text-primary block px-3 py-2 rounded-md text-base font-medium">About Us</a>
                 <a href="contact.html" class="text-text-gray hover:text-primary block px-3 py-2 rounded-md text-base font-medium">Contact Us</a>
-                <a href="login.html" class="w-full text-left bg-primary hover:bg-primary-dark text-white px-3 py-2 rounded-md text-base font-medium transition-colors mt-2 block">
-                    Start Finding Emails
-                </a>
+                <div class="mobile-auth-button">
+                    <a href="login.html" class="w-full text-left bg-primary hover:bg-primary-dark text-white px-3 py-2 rounded-md text-base font-medium transition-colors mt-2 block">
+                        Start Finding Emails
+                    </a>
+                </div>
             </div>
         </div>
     </nav>
@@ -995,7 +997,19 @@
         document.addEventListener('DOMContentLoaded', function() {
             // Add any additional initialization here
             console.log('Mailsfinder homepage loaded successfully!');
+            
+            // Check authentication state on page load
+            if (typeof window.auth !== 'undefined') {
+                setTimeout(() => {
+                    checkAuthState();
+                }, 100);
+            }
         });
     </script>
+    
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-config.js"></script>
+    <script src="js/auth.js"></script>
 </body>
 </html>

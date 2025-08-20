@@ -115,10 +115,26 @@
 
                 // Redirect after successful login
                 setTimeout(() => {
-                    window.location.href = 'index.html';
+                    window.location.href = 'https://app.mailsfinder.com/search';
                 }, 1500);
             } else {
-                showError(result.error || 'Login failed. Please try again.');
+                // Handle specific error cases
+                if (result.error && result.error.includes('Email not confirmed')) {
+                    showError('Please verify your email address before signing in. Check your inbox for a confirmation email. <a href="#" id="resendConfirmation" class="text-primary hover:underline ml-2">Resend confirmation email</a>');
+                    
+                    // Add click handler for resend confirmation
+                    setTimeout(() => {
+                        const resendLink = document.getElementById('resendConfirmation');
+                        if (resendLink) {
+                            resendLink.addEventListener('click', async (e) => {
+                                e.preventDefault();
+                                await resendConfirmationEmail(email);
+                            });
+                        }
+                    }, 100);
+                } else {
+                    showError(result.error || 'Login failed. Please try again.');
+                }
             }
         } catch (error) {
             console.error('Login error:', error);
@@ -342,13 +358,13 @@
         const errorText = document.getElementById('errorText');
         
         if (errorDiv && errorText) {
-            errorText.textContent = message;
+            errorText.innerHTML = message;
             errorDiv.classList.remove('hidden');
             
-            // Auto-hide after 5 seconds
+            // Auto-hide after 8 seconds for longer messages
             setTimeout(() => {
                 errorDiv.classList.add('hidden');
-            }, 5000);
+            }, 8000);
         }
     }
 
@@ -390,6 +406,27 @@
         }
     }
 
+    // Resend confirmation email
+    async function resendConfirmationEmail(email) {
+        try {
+            showSuccess('Sending confirmation email...');
+            
+            const { error } = await window.supabaseClient.auth.resend({
+                type: 'signup',
+                email: email
+            });
+            
+            if (error) {
+                showError('Failed to resend confirmation email: ' + error.message);
+            } else {
+                showSuccess('Confirmation email sent! Please check your inbox.');
+            }
+        } catch (error) {
+            console.error('Resend confirmation error:', error);
+            showError('Failed to resend confirmation email. Please try again.');
+        }
+    }
+
     // Check Authentication State
     async function checkAuthState() {
         try {
@@ -398,6 +435,9 @@
             if (user) {
                 // User is logged in
                 console.log('User is authenticated:', user);
+                
+                // Update navbar to show user profile
+                updateNavbarForUser(user);
                 
                 // If on login/signup page and user is authenticated, redirect to dashboard
                 if (window.location.pathname.includes('login.html') || 
@@ -417,8 +457,12 @@
             
             if (event === 'SIGNED_IN') {
                 console.log('User signed in:', session.user);
+                // Update navbar to show user profile
+                updateNavbarForUser(session.user);
             } else if (event === 'SIGNED_OUT') {
                 console.log('User signed out');
+                // Reset navbar to show login button
+                window.location.reload();
                 // Redirect to login if on protected pages
                 if (window.location.pathname.includes('dashboard') || 
                     window.location.pathname.includes('profile')) {
@@ -428,6 +472,93 @@
         });
     }
 
+    // Update navbar for authenticated user
+    function updateNavbarForUser(user) {
+        const authButton = document.querySelector('.auth-button');
+        const mobileAuthButton = document.querySelector('.mobile-auth-button');
+        
+        if (authButton && user) {
+            // Create user profile dropdown
+            const userEmail = user.email || 'User';
+            const userName = user.user_metadata?.full_name || userEmail.split('@')[0];
+            
+            authButton.innerHTML = `
+                <div class="relative">
+                    <button class="flex items-center space-x-2 text-text-gray hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors" onclick="toggleUserDropdown()">
+                        <div class="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white text-sm font-medium">
+                            ${userName.charAt(0).toUpperCase()}
+                        </div>
+                        <span class="hidden lg:block">${userName}</span>
+                        <i class="fas fa-chevron-down text-xs"></i>
+                    </button>
+                    <div id="userDropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 border" style="z-index: 9999;">
+                        <div class="px-4 py-2 text-sm text-text-gray border-b">
+                            <div class="font-medium">${userName}</div>
+                            <div class="text-xs text-text-gray">${userEmail}</div>
+                        </div>
+                        <a href="https://app.mailsfinder.com/search" class="block px-4 py-2 text-sm text-text-gray hover:bg-gray-100">Dashboard</a>
+                        <button onclick="handleLogout()" class="block w-full text-left px-4 py-2 text-sm text-text-gray hover:bg-gray-100">Sign Out</button>
+                    </div>
+                </div>
+            `;
+        }
+        
+        if (mobileAuthButton && user) {
+            const userEmail = user.email || 'User';
+            const userName = user.user_metadata?.full_name || userEmail.split('@')[0];
+            
+            mobileAuthButton.innerHTML = `
+                <div class="px-3 py-2 border-t border-gray-200">
+                    <div class="flex items-center space-x-3 mb-2">
+                        <div class="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white text-sm font-medium">
+                            ${userName.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                            <div class="text-sm font-medium text-text-dark">${userName}</div>
+                            <div class="text-xs text-text-gray">${userEmail}</div>
+                        </div>
+                    </div>
+                    <a href="https://app.mailsfinder.com/search" class="block w-full text-left bg-primary hover:bg-primary-dark text-white px-3 py-2 rounded-md text-sm font-medium transition-colors mb-2">Dashboard</a>
+                    <button onclick="handleLogout()" class="block w-full text-left text-text-gray hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors">Sign Out</button>
+                </div>
+            `;
+        }
+    }
+    
+    // Handle user logout
+    async function handleLogout() {
+        try {
+            await window.supabaseClient.auth.signOut();
+            // Reload page to reset navbar
+            window.location.reload();
+        } catch (error) {
+            console.error('Logout error:', error);
+        }
+    }
+    
+    // Toggle user dropdown
+    function toggleUserDropdown() {
+        const dropdown = document.getElementById('userDropdown');
+        if (dropdown) {
+            dropdown.classList.toggle('hidden');
+        }
+    }
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(event) {
+        const dropdown = document.getElementById('userDropdown');
+        const button = event.target.closest('[onclick="toggleUserDropdown()"]');
+        
+        if (dropdown && !button && !dropdown.contains(event.target)) {
+            dropdown.classList.add('hidden');
+        }
+    });
+
+    // Make functions globally available
+    window.checkAuthState = checkAuthState;
+    window.toggleUserDropdown = toggleUserDropdown;
+    window.handleLogout = handleLogout;
+    
     // Export functions for global use
     window.authFunctions = {
         showError,
@@ -435,7 +566,11 @@
         hideMessages,
         setLoadingState,
         isValidEmail,
-        isStrongPassword
+        isStrongPassword,
+        updateNavbarForUser,
+        handleLogout,
+        toggleUserDropdown,
+        checkAuthState
     };
 
 })();
