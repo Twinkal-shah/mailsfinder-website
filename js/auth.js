@@ -113,9 +113,9 @@
                     localStorage.removeItem('rememberMe');
                 }
 
-                // Redirect after successful login
+                // Redirect after successful login through auth bridge
                 setTimeout(() => {
-                    window.location.href = 'https://app.mailsfinder.com/search';
+                    window.location.href = 'auth-bridge.html';
                 }, 1500);
             } else {
                 // Handle specific error cases
@@ -496,7 +496,7 @@
                             <div class="font-medium">${userName}</div>
                             <div class="text-xs text-text-gray">${userEmail}</div>
                         </div>
-                        <a href="https://app.mailsfinder.com/search" class="block px-4 py-2 text-sm text-text-gray hover:bg-gray-100">Dashboard</a>
+                        <a href="#" onclick="redirectToDashboard()" class="block px-4 py-2 text-sm text-text-gray hover:bg-gray-100">Dashboard</a>
                         <button onclick="handleLogout()" class="block w-full text-left px-4 py-2 text-sm text-text-gray hover:bg-gray-100">Sign Out</button>
                     </div>
                 </div>
@@ -518,7 +518,7 @@
                             <div class="text-xs text-text-gray">${userEmail}</div>
                         </div>
                     </div>
-                    <a href="https://app.mailsfinder.com/search" class="block w-full text-left bg-primary hover:bg-primary-dark text-white px-3 py-2 rounded-md text-sm font-medium transition-colors mb-2">Dashboard</a>
+                    <a href="#" onclick="redirectToDashboard()" class="block w-full text-left bg-primary hover:bg-primary-dark text-white px-3 py-2 rounded-md text-sm font-medium transition-colors mb-2">Dashboard</a>
                     <button onclick="handleLogout()" class="block w-full text-left text-text-gray hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors">Sign Out</button>
                 </div>
             `;
@@ -554,10 +554,32 @@
         }
     });
 
+    // Redirect to dashboard through auth bridge
+    async function redirectToDashboard() {
+        try {
+            const { data: { session } } = await window.supabaseClient.auth.getSession();
+            
+            if (session && session.access_token) {
+                // Use auth bridge for consistent token passing
+                window.location.href = 'auth-bridge.html';
+            } else {
+                // If no session, redirect to login
+                window.location.href = 'login.html';
+            }
+        } catch (error) {
+            console.error('Error getting session for dashboard redirect:', error);
+            // Fallback: redirect to login
+            window.location.href = 'login.html';
+        }
+    }
+
     // Make functions globally available
+    window.handleLogin = handleLogin;
+    window.handleSignup = handleSignup;
     window.checkAuthState = checkAuthState;
     window.toggleUserDropdown = toggleUserDropdown;
     window.handleLogout = handleLogout;
+    window.redirectToDashboard = redirectToDashboard;
     
     // Export functions for global use
     window.authFunctions = {
