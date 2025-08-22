@@ -3,105 +3,163 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Redirecting to Dashboard...</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-        .container {
-            text-align: center;
-            padding: 2rem;
-        }
-        .spinner {
-            border: 4px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top: 4px solid white;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 1rem;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .error {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 1rem;
-            border-radius: 8px;
-            margin-top: 1rem;
-        }
-        .retry-btn {
-            background: white;
-            color: #667eea;
-            border: none;
-            padding: 0.5rem 1rem;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-top: 1rem;
-        }
-    </style>
+    <title>Authentication Bridge</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 </head>
 <body>
-    <div class="container">
-        <div class="spinner"></div>
-        <h2>Redirecting to Dashboard...</h2>
-        <p>Please wait while we authenticate your session.</p>
-        <div id="error-message" class="error" style="display: none;">
-            <p>Authentication failed. Please try logging in again.</p>
-            <button class="retry-btn" onclick="window.location.href='login.html'">Back to Login</button>
-        </div>
-    </div>
-
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-    <script src="js/supabase-config.js"></script>
     <script>
-        async function handleAuthBridge() {
+        // This page should be hosted on mailsfinder.com to handle cross-domain auth requests
+        
+        // Supabase configuration - Replace with your mailsfinder.com Supabase project details
+        const SUPABASE_URL = 'https://wbcfsffssphgvpnbrvve.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndiY2ZzZmZzc3BoZ3ZwbmJydnZlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NTE3Mzc1NCwiZXhwIjoyMDcwNzQ5NzU0fQ.dnXUMNFUw0amsJsLL8PHMjHRpda8w07KbwDIpo3O2vE';
+        
+        // Initialize Supabase client
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            auth: {
+                autoRefreshToken: true,
+                persistSession: true,
+                detectSessionInUrl: true
+            }
+        });
+        
+        // Function to get current authenticated user from Supabase
+        async function getCurrentAuthenticatedUser() {
             try {
-                // Get current session
-                const { data: { session }, error } = await window.supabaseClient.auth.getSession();
+                // Get the current session
+                const { data: { session }, error: sessionError } = await supabase.auth.getSession();
                 
-                if (error) {
-                    console.error('Session error:', error);
-                    showError();
-                    return;
+                if (sessionError) {
+                    console.error('Error getting session:', sessionError);
+                    return null;
                 }
                 
-                if (session && session.access_token) {
-                    // Create dashboard URL with tokens
-                    const dashboardUrl = `https://app.mailsfinder.com/search?token=${encodeURIComponent(session.access_token)}&refresh_token=${encodeURIComponent(session.refresh_token)}&user_id=${encodeURIComponent(session.user.id)}&email=${encodeURIComponent(session.user.email)}`;
+                if (!session || !session.user) {
+                    console.log('No active session found');
+                    return null;
+                }
+                
+                const user = session.user;
+                console.log('Found authenticated user:', user.email);
+                
+                // Try to get additional user profile data from the database
+                let userProfile = null;
+                try {
+                    const { data: profile, error: profileError } = await supabase
+                        .from('profiles')
+                        .select('*')
+                        .eq('id', user.id)
+                        .single();
                     
-                    // Redirect to dashboard
-                    window.location.href = dashboardUrl;
-                } else {
-                    // No valid session, redirect to login
-                    console.log('No valid session found');
-                    setTimeout(() => {
-                        window.location.href = 'login.html';
-                    }, 2000);
+                    if (!profileError && profile) {
+                        userProfile = profile;
+                    }
+                } catch (profileErr) {
+                    console.log('No profile found in profiles table, using auth user data');
                 }
+                
+                // Prepare user data
+                const userData = {
+                    id: user.id,
+                    email: user.email,
+                    name: userProfile?.name || 
+                           userProfile?.display_name || 
+                           user.user_metadata?.name || 
+                           user.user_metadata?.display_name || 
+                           user.email?.split('@')[0] || 
+                           'User',
+                    phone: userProfile?.phone || user.phone,
+                    created_at: user.created_at,
+                    last_sign_in_at: user.last_sign_in_at,
+                    ...userProfile
+                };
+                
+                // Prepare token data
+                const tokenData = {
+                    access_token: session.access_token,
+                    refresh_token: session.refresh_token,
+                    expires_at: session.expires_at
+                };
+                
+                return {
+                    user: userData,
+                    tokens: tokenData
+                };
+                
             } catch (error) {
-                console.error('Auth bridge error:', error);
-                showError();
+                console.error('Error checking authentication:', error);
+                return null;
             }
         }
         
-        function showError() {
-            document.querySelector('.spinner').style.display = 'none';
-            document.querySelector('h2').textContent = 'Authentication Error';
-            document.querySelector('p').style.display = 'none';
-            document.getElementById('error-message').style.display = 'block';
-        }
+        // Listen for authentication requests from app.mailsfinder.com
+        window.addEventListener('message', async function(event) {
+            // Only respond to requests from app.mailsfinder.com and localhost (for development)
+            if (event.origin !== 'https://app.mailsfinder.com' && 
+                event.origin !== 'http://localhost:5173' &&
+                event.origin !== 'https://localhost:5173') {
+                console.log('Ignoring message from unauthorized origin:', event.origin);
+                return;
+            }
+            
+            if (event.data && event.data.type === 'REQUEST_AUTH_DATA') {
+                console.log('Received auth data request from:', event.origin);
+                
+                try {
+                    const authResult = await getCurrentAuthenticatedUser();
+                    
+                    if (authResult && authResult.user) {
+                        // Send authentication data back to app.mailsfinder.com
+                        const authData = {
+                            type: 'USER_AUTH',
+                            user: authResult.user,
+                            tokens: authResult.tokens
+                        };
+                        
+                        console.log('Sending auth data to:', event.origin, authData.user.email);
+                        event.source.postMessage(authData, event.origin);
+                    } else {
+                        // No authentication found
+                        console.log('No authentication found, user needs to log in');
+                        event.source.postMessage({
+                            type: 'USER_AUTH',
+                            user: null,
+                            tokens: null
+                        }, event.origin);
+                    }
+                } catch (error) {
+                    console.error('Error checking authentication:', error);
+                    event.source.postMessage({
+                        type: 'USER_AUTH',
+                        user: null,
+                        tokens: null,
+                        error: 'Authentication check failed: ' + error.message
+                    }, event.origin);
+                }
+            }
+        });
         
-        // Start the auth bridge process
-        handleAuthBridge();
+        // Also check for authentication on page load and notify any child frames
+        window.addEventListener('load', async function() {
+            console.log('Auth bridge loaded on mailsfinder.com');
+            
+            // Optionally, you can check authentication status on load
+            try {
+                const authResult = await getCurrentAuthenticatedUser();
+                if (authResult && authResult.user) {
+                    console.log('User is authenticated:', authResult.user.email);
+                } else {
+                    console.log('No user authenticated on page load');
+                }
+            } catch (error) {
+                console.error('Error checking auth on load:', error);
+            }
+        });
+        
+        // Listen for Supabase auth state changes
+        supabase.auth.onAuthStateChange((event, session) => {
+            console.log('Auth state changed:', event, session?.user?.email || 'no user');
+        });
     </script>
 </body>
 </html>
