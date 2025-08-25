@@ -10,26 +10,46 @@ const userManager = {
     // Create or update user in custom profiles table
     async createOrUpdateUser(authUser, additionalData = {}) {
         try {
-            // Calculate plan expiry (3 days from now for free plan)
-            const planExpiry = new Date();
-            planExpiry.setDate(planExpiry.getDate() + 3);
+            console.log('createOrUpdateUser called with:', {
+                authUser: {
+                    id: authUser.id,
+                    email: authUser.email,
+                    user_metadata: authUser.user_metadata
+                },
+                additionalData
+            });
+            
+            // Calculate plan expiry (3 days from created_at date for free plan)
+            const createdAt = new Date();
+            const planExpiry = new Date(createdAt);
+            planExpiry.setDate(createdAt.getDate() + 3);
+            
+            // Merge user metadata with additional data, prioritizing additionalData
+            const metadata = authUser.user_metadata || {};
+            const firstName = additionalData.first_name || metadata.first_name || '';
+            const lastName = additionalData.last_name || metadata.last_name || '';
+            const fullName = additionalData.full_name || metadata.full_name || `${firstName} ${lastName}`.trim() || null;
+            const company = additionalData.company || metadata.company || null;
             
             const userData = {
                 id: authUser.id,
                 email: authUser.email,
-                full_name: additionalData.full_name || `${additionalData.first_name || ''} ${additionalData.last_name || ''}`.trim(),
-                company: additionalData.company || null,
+                full_name: fullName,
+                company: company,
                 plan: 'free', // Default plan
                 plan_expiry: planExpiry.toISOString(),
                 credits: 25, // Total credits for backward compatibility
                 credits_find: 25, // Credits for email finding
                 credits_verify: 25, // Credits for email verification
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-                ...additionalData
+                created_at: createdAt.toISOString(),
+                updated_at: new Date().toISOString()
             };
+            
+            console.log('Prepared userData for database:', userData);
 
             // Use upsert to create or update user
+            console.log('Attempting to upsert user data to profiles table:', userData);
+            
             const { data, error } = await supabase
                 .from('profiles')
                 .upsert(userData, {
@@ -40,12 +60,32 @@ const userManager = {
                 .single();
 
             if (error) {
-                console.error('Error creating/updating user:', error);
-                return { success: false, error: error.message };
+                console.error('Error creating/updating user:', {
+                    error: error,
+                    message: error.message,
+                    details: error.details,
+                    hint: error.hint,
+                    code: error.code
+                });
+                return { success: false, error: error.message, fullError: error };
             }
 
             console.log('User created/updated successfully:', data);
-            return { success: true, data };
+            
+            // Verify the data was actually saved
+            const { data: verifyData, error: verifyError } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', userData.id)
+                .single();
+                
+            if (verifyError) {
+                console.error('Error verifying saved data:', verifyError);
+            } else {
+                console.log('Verified saved data:', verifyData);
+            }
+            
+            return { success: true, data, verified: verifyData };
         } catch (error) {
             console.error('User management error:', error);
             return { success: false, error: error.message };
@@ -193,6 +233,8 @@ const auth = {
     // Sign up new user
     async signUp(email, password, userData = {}) {
         try {
+            console.log('Starting signup with userData:', userData);
+            
             const { data, error } = await supabase.auth.signUp({
                 email: email,
                 password: password,
@@ -207,22 +249,27 @@ const auth = {
             });
             
             if (error) throw error;
+            
+            console.log('Supabase signup response:', {
+                user: data.user ? {
+                    id: data.user.id,
+                    email: data.user.email,
+                    email_confirmed_at: data.user.email_confirmed_at,
+                    user_metadata: data.user.user_metadata
+                } : null,
+                session: data.session ? 'exists' : 'null'
+            });
 
-            // If user was created successfully, create record in profiles table
-            if (data.user && !data.user.email_confirmed_at) {
-                // User needs email confirmation, but we can prepare the user record
-                console.log('User signed up, email confirmation required');
+            // Always create user profile immediately, regardless of email confirmation status
+            if (data.user) {
+                console.log('Creating user profile for:', data.user.id);
                 
-                // Create user profile immediately (will be activated upon email confirmation)
+                // Create user profile with the provided userData
                 const userResult = await userManager.createOrUpdateUser(data.user, userData);
                 if (!userResult.success) {
                     console.error('Failed to create user profile:', userResult.error);
-                }
-            } else if (data.user) {
-                // User is immediately confirmed, create user record
-                const userResult = await userManager.createOrUpdateUser(data.user, userData);
-                if (!userResult.success) {
-                    console.error('Failed to create user profile:', userResult.error);
+                } else {
+                    console.log('User profile created successfully:', userResult.data);
                 }
             }
 
@@ -247,8 +294,14 @@ const auth = {
             if (data.user) {
                 const userResult = await userManager.getUser(data.user.id);
                 if (!userResult.success) {
-                    // Create profile if it doesn't exist
-                    await userManager.createOrUpdateUser(data.user);
+                    // Create profile if it doesn't exist, preserve user metadata
+                    const userData = {
+                        first_name: data.user.user_metadata?.first_name,
+                        last_name: data.user.user_metadata?.last_name,
+                        full_name: data.user.user_metadata?.full_name,
+                        company: data.user.user_metadata?.company
+                    };
+                    await userManager.createOrUpdateUser(data.user, userData);
                 }
             }
 
@@ -307,7 +360,14 @@ const auth = {
                 // Ensure user profile exists
                 const userResult = await userManager.getUser(session.user.id);
                 if (!userResult.success) {
-                    await userManager.createOrUpdateUser(session.user);
+                    // Only create profile if it doesn't exist, preserve user metadata
+                    const userData = {
+                        first_name: session.user.user_metadata?.first_name,
+                        last_name: session.user.user_metadata?.last_name,
+                        full_name: session.user.user_metadata?.full_name,
+                        company: session.user.user_metadata?.company
+                    };
+                    await userManager.createOrUpdateUser(session.user, userData);
                 }
             }
             callback(event, session);
