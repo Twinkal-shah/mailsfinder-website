@@ -1,5 +1,4 @@
-// Supabase Configuration
-// Your Supabase project credentials
+// Supabase configuration
 const SUPABASE_URL = 'https://wbcfsffssphgvpnbrvve.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndiY2ZzZmZzc3BoZ3ZwbmJydnZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUxNzM3NTQsImV4cCI6MjA3MDc0OTc1NH0.3GV4dQm0Aqm8kbNzPJYOCFLnvhyNqxCJCtwfmUAw29Y';
 
@@ -11,12 +10,21 @@ const userManager = {
     // Create or update user in custom profiles table
     async createOrUpdateUser(authUser, additionalData = {}) {
         try {
+            // Calculate plan expiry (3 days from now for free plan)
+            const planExpiry = new Date();
+            planExpiry.setDate(planExpiry.getDate() + 3);
+            
             const userData = {
                 id: authUser.id,
                 email: authUser.email,
+                full_name: additionalData.full_name || `${additionalData.first_name || ''} ${additionalData.last_name || ''}`.trim(),
+                company: additionalData.company || null,
                 plan: 'free', // Default plan
-                credits_find: 25, // Default credits
-                credits_verify: 25, // Default credits
+                plan_expiry: planExpiry.toISOString(),
+                credits: 25, // Total credits for backward compatibility
+                credits_find: 25, // Credits for email finding
+                credits_verify: 25, // Credits for email verification
+                created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
                 ...additionalData
             };
@@ -73,6 +81,7 @@ const userManager = {
                 .update({
                     credits_find: creditsFind,
                     credits_verify: creditsVerify,
+                    credits: creditsFind + creditsVerify, // Update total credits
                     updated_at: new Date().toISOString()
                 })
                 .eq('id', userId)
@@ -87,6 +96,62 @@ const userManager = {
             return { success: true, data };
         } catch (error) {
             console.error('Update credits error:', error);
+            return { success: false, error: error.message };
+        }
+    },
+
+    // Deduct credits for email finding
+    async deductFindCredits(userId, amount = 1) {
+        try {
+            // First get current credits
+            const userResult = await this.getUser(userId);
+            if (!userResult.success) {
+                return { success: false, error: 'Failed to get user data' };
+            }
+
+            const currentCredits = userResult.data.credits_find || 0;
+            if (currentCredits < amount) {
+                return { success: false, error: 'Insufficient credits for email finding' };
+            }
+
+            const newCredits = currentCredits - amount;
+            const updateResult = await this.updateCredits(userId, newCredits, userResult.data.credits_verify || 0);
+            
+            if (updateResult.success) {
+                console.log(`Deducted ${amount} find credit(s). Remaining: ${newCredits}`);
+            }
+            
+            return updateResult;
+        } catch (error) {
+            console.error('Deduct find credits error:', error);
+            return { success: false, error: error.message };
+        }
+    },
+
+    // Deduct credits for email verification
+    async deductVerifyCredits(userId, amount = 1) {
+        try {
+            // First get current credits
+            const userResult = await this.getUser(userId);
+            if (!userResult.success) {
+                return { success: false, error: 'Failed to get user data' };
+            }
+
+            const currentCredits = userResult.data.credits_verify || 0;
+            if (currentCredits < amount) {
+                return { success: false, error: 'Insufficient credits for email verification' };
+            }
+
+            const newCredits = currentCredits - amount;
+            const updateResult = await this.updateCredits(userId, userResult.data.credits_find || 0, newCredits);
+            
+            if (updateResult.success) {
+                console.log(`Deducted ${amount} verify credit(s). Remaining: ${newCredits}`);
+            }
+            
+            return updateResult;
+        } catch (error) {
+            console.error('Deduct verify credits error:', error);
             return { success: false, error: error.message };
         }
     },
@@ -132,31 +197,38 @@ const auth = {
                 email: email,
                 password: password,
                 options: {
-                    data: userData
+                    data: {
+                        first_name: userData.first_name,
+                        last_name: userData.last_name,
+                        full_name: userData.full_name,
+                        company: userData.company
+                    }
                 }
             });
             
             if (error) throw error;
 
-            // If user was created successfully, create record in users table
+            // If user was created successfully, create record in profiles table
             if (data.user && !data.user.email_confirmed_at) {
                 // User needs email confirmation, but we can prepare the user record
                 console.log('User signed up, email confirmation required');
+                
+                // Create user profile immediately (will be activated upon email confirmation)
+                const userResult = await userManager.createOrUpdateUser(data.user, userData);
+                if (!userResult.success) {
+                    console.error('Failed to create user profile:', userResult.error);
+                }
             } else if (data.user) {
                 // User is immediately confirmed, create user record
-                const userResult = await userManager.createOrUpdateUser(data.user, {
-                    // Add any additional data from signup form
-                    ...userData
-                });
-                
+                const userResult = await userManager.createOrUpdateUser(data.user, userData);
                 if (!userResult.success) {
-                    console.warn('User auth created but failed to create user record:', userResult.error);
+                    console.error('Failed to create user profile:', userResult.error);
                 }
             }
 
             return { success: true, data };
         } catch (error) {
-            console.error('Sign up error:', error);
+            console.error('Signup error:', error);
             return { success: false, error: error.message };
         }
     },
@@ -171,19 +243,18 @@ const auth = {
             
             if (error) throw error;
 
-            // After successful login, ensure user exists in users table
+            // Ensure user profile exists in profiles table
             if (data.user) {
-                const userResult = await userManager.createOrUpdateUser(data.user);
-                
+                const userResult = await userManager.getUser(data.user.id);
                 if (!userResult.success) {
-                    console.warn('Login successful but failed to update user record:', userResult.error);
-                    // Don't fail the login, just log the warning
+                    // Create profile if it doesn't exist
+                    await userManager.createOrUpdateUser(data.user);
                 }
             }
 
             return { success: true, data };
         } catch (error) {
-            console.error('Sign in error:', error);
+            console.error('Signin error:', error);
             return { success: false, error: error.message };
         }
     },
@@ -195,7 +266,7 @@ const auth = {
             if (error) throw error;
             return { success: true };
         } catch (error) {
-            console.error('Sign out error:', error);
+            console.error('Signout error:', error);
             return { success: false, error: error.message };
         }
     },
@@ -206,7 +277,7 @@ const auth = {
             const { data: { user } } = await supabase.auth.getUser();
             return user;
         } catch (error) {
-            console.error('Get user error:', error);
+            console.error('Get current user error:', error);
             return null;
         }
     },
@@ -214,20 +285,17 @@ const auth = {
     // Get current user with custom user data
     async getCurrentUserWithData() {
         try {
-            const authUser = await this.getCurrentUser();
-            if (!authUser) return null;
+            const user = await this.getCurrentUser();
+            if (!user) return null;
 
-            const userResult = await userManager.getUser(authUser.id);
+            const userResult = await userManager.getUser(user.id);
             if (userResult.success) {
-                return {
-                    ...authUser,
-                    userData: userResult.data
-                };
+                return { ...user, profile: userResult.data };
             }
-
-            return authUser;
+            
+            return user;
         } catch (error) {
-            console.error('Get user with data error:', error);
+            console.error('Get current user with data error:', error);
             return null;
         }
     },
@@ -235,16 +303,13 @@ const auth = {
     // Listen to auth state changes
     onAuthStateChange(callback) {
         return supabase.auth.onAuthStateChange(async (event, session) => {
-            // Handle email confirmation
             if (event === 'SIGNED_IN' && session?.user) {
-                // Ensure user exists in users table when they sign in
-                const userResult = await userManager.createOrUpdateUser(session.user);
+                // Ensure user profile exists
+                const userResult = await userManager.getUser(session.user.id);
                 if (!userResult.success) {
-                    console.warn('Failed to create/update user record on auth state change:', userResult.error);
+                    await userManager.createOrUpdateUser(session.user);
                 }
             }
-            
-            // Call the original callback
             callback(event, session);
         });
     },
@@ -253,9 +318,8 @@ const auth = {
     async resetPassword(email) {
         try {
             const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                redirectTo: window.location.origin + '/reset-password.html'
+                redirectTo: `${window.location.origin}/reset-password.html`
             });
-            
             if (error) throw error;
             return { success: true };
         } catch (error) {
@@ -265,11 +329,11 @@ const auth = {
     }
 };
 
-// Export for use in other files
+// Export to global scope
 window.supabaseClient = supabase;
 window.auth = auth;
 window.userManager = userManager;
 
-// Also create a global reference for backwards compatibility
+// Legacy support
 window.supabase = window.supabase || {};
 window.supabase.client = supabase;
