@@ -6,9 +6,9 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 // Initialize Supabase client
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// User management functions for custom users table
+// User management functions for custom profiles table
 const userManager = {
-    // Create or update user in custom users table
+    // Create or update user in custom profiles table
     async createOrUpdateUser(authUser, additionalData = {}) {
         try {
             const userData = {
@@ -23,10 +23,10 @@ const userManager = {
 
             // Use upsert to create or update user
             const { data, error } = await supabase
-                .from('users')
-                .upsert(userData, { 
+                .from('profiles')
+                .upsert(userData, {
                     onConflict: 'id',
-                    ignoreDuplicates: false 
+                    ignoreDuplicates: false
                 })
                 .select()
                 .single();
@@ -44,11 +44,11 @@ const userManager = {
         }
     },
 
-    // Get user from custom users table
+    // Get user from custom profiles table
     async getUser(userId) {
         try {
             const { data, error } = await supabase
-                .from('users')
+                .from('profiles')
                 .select('*')
                 .eq('id', userId)
                 .single();
@@ -69,8 +69,8 @@ const userManager = {
     async updateCredits(userId, creditsFind, creditsVerify) {
         try {
             const { data, error } = await supabase
-                .from('users')
-                .update({ 
+                .from('profiles')
+                .update({
                     credits_find: creditsFind,
                     credits_verify: creditsVerify,
                     updated_at: new Date().toISOString()
@@ -104,7 +104,7 @@ const userManager = {
             if (customerId) updateData.customer_id = customerId;
 
             const { data, error } = await supabase
-                .from('users')
+                .from('profiles')
                 .update(updateData)
                 .eq('id', userId)
                 .select()
