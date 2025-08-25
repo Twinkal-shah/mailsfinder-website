@@ -1,0 +1,23 @@
+# Enable URL rewriting
+RewriteEngine On
+
+# Remove .html extension from URLs
+# If the request is for a file that exists with .html extension, rewrite it
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^([^.]+)$ $1.html [L]
+
+# Redirect .html URLs to clean URLs (301 permanent redirect)
+RewriteCond %{THE_REQUEST} /([^.]+)\.html [NC]
+RewriteRule ^ /%1? [NC,L,R=301]
+
+# Handle index page - redirect index.html to root
+RewriteCond %{THE_REQUEST} /index\.html [NC]
+RewriteRule ^ /? [NC,L,R=301]
+
+# Default DirectoryIndex
+DirectoryIndex index.html
+
+# Optional: Add trailing slash to directories
+# RewriteCond %{REQUEST_FILENAME} -d
+# RewriteRule ^(.+[^/])$ $1/ [R=301,L]
