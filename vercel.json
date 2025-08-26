@@ -35,6 +35,10 @@
     {
       "source": "/signup",
       "destination": "/signup.html"
+    },
+    {
+      "source": "/manual-navbar-fix",
+      "destination": "/manual-navbar-fix.html"
     }
   ],
   "redirects": [
@@ -81,6 +85,11 @@
     {
       "source": "/signup.html",
       "destination": "/signup",
+      "permanent": true
+    },
+    {
+      "source": "/manual-navbar-fix.html",
+      "destination": "/manual-navbar-fix",
       "permanent": true
     }
   ]

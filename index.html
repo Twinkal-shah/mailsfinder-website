@@ -100,7 +100,7 @@
                         <a href="contact" class="text-text-gray hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors">Contact Us</a>
                     </div>
                 </div>
-                <div class="hidden md:block auth-button">
+                <div class="hidden md:block auth-button" id="authButton">
                     <a href="login" class="bg-primary hover:bg-primary-dark text-white px-6 py-2 rounded-lg font-medium transition-colors inline-block">
                         Start Finding Emails
                     </a>
@@ -120,7 +120,7 @@
                 <a href="#pricing" class="text-text-gray hover:text-primary block px-3 py-2 rounded-md text-base font-medium">Pricing</a>
                 <a href="about" class="text-text-gray hover:text-primary block px-3 py-2 rounded-md text-base font-medium">About Us</a>
                 <a href="contact" class="text-text-gray hover:text-primary block px-3 py-2 rounded-md text-base font-medium">Contact Us</a>
-                <div class="mobile-auth-button">
+                <div class="mobile-auth-button" id="mobileAuthButton">
                     <a href="login" class="w-full text-left bg-primary hover:bg-primary-dark text-white px-3 py-2 rounded-md text-base font-medium transition-colors mt-2 block">
                         Start Finding Emails
                     </a>
@@ -998,19 +998,137 @@
             // Add any additional initialization here
             console.log('Mailsfinder homepage loaded successfully!');
             
-            // Check authentication state on page load with proper timing
+            // Aggressive authentication check with multiple retries
+            let authCheckAttempts = 0;
+            const maxAuthAttempts = 10;
+            
             function initAuth() {
+                authCheckAttempts++;
+                console.log(`Auth check attempt ${authCheckAttempts}/${maxAuthAttempts}`);
+                
                 if (typeof window.auth !== 'undefined' && typeof window.authFunctions !== 'undefined') {
                     console.log('Auth system loaded, checking auth state...');
-                    window.authFunctions.checkAuthState();
+                    
+                    // Force check authentication state
+                    window.authFunctions.checkAuthState().then(() => {
+                        console.log('Initial auth check completed');
+                        
+                        // Double-check after a short delay
+                        setTimeout(async () => {
+                            try {
+                                const user = await window.auth.getCurrentUser();
+                                if (user) {
+                                    console.log('User found on double-check, forcing navbar update:', user.email);
+                                    await window.authFunctions.updateNavbarForUser(user);
+                                } else {
+                                    console.log('No user found on double-check');
+                                }
+                            } catch (error) {
+                                console.error('Double-check auth error:', error);
+                            }
+                        }, 1000);
+                    }).catch(error => {
+                        console.error('Auth check error:', error);
+                    });
+                    
+                } else if (authCheckAttempts < maxAuthAttempts) {
+                    console.log('Auth system not ready, retrying in 300ms...');
+                    setTimeout(initAuth, 300);
                 } else {
-                    console.log('Auth system not ready, retrying in 200ms...');
-                    setTimeout(initAuth, 200);
+                    console.error('Auth system failed to load after maximum attempts');
+                }
+            }
+            
+            // Check for forced auth update from localStorage
+            const forceAuthData = localStorage.getItem('forceAuthUpdate');
+            if (forceAuthData) {
+                try {
+                    const authData = JSON.parse(forceAuthData);
+                    // Check if data is recent (within 5 minutes)
+                    if (Date.now() - authData.timestamp < 300000) {
+                        console.log('Found forced auth data, applying immediately:', authData);
+                        
+                        // Apply the navbar update immediately
+                        setTimeout(async () => {
+                            const authButton = document.getElementById('authButton');
+                            const mobileAuthButton = document.getElementById('mobileAuthButton');
+                            const userName = authData.profile?.full_name || authData.user.email.split('@')[0];
+                            const userEmail = authData.user.email;
+                            
+                            if (authButton) {
+                                authButton.innerHTML = `
+                                    <div class="relative">
+                                        <button class="flex items-center space-x-2 text-text-gray hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors" onclick="toggleUserDropdown()">
+                                            <div class="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white text-sm font-medium">
+                                                ${userName.charAt(0).toUpperCase()}
+                                            </div>
+                                            <span class="hidden lg:block">${userName}</span>
+                                            <i class="fas fa-chevron-down text-xs"></i>
+                                        </button>
+                                        <div id="userDropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 border" style="z-index: 9999;">
+                                            <div class="px-4 py-2 text-sm text-text-gray border-b">
+                                                <div class="font-medium">${userName}</div>
+                                                <div class="text-xs text-text-gray">${userEmail}</div>
+                                            </div>
+                                            <a href="#" onclick="redirectToDashboard()" class="block px-4 py-2 text-sm text-text-gray hover:bg-gray-100">Dashboard</a>
+                                            <button onclick="handleLogout()" class="block w-full text-left px-4 py-2 text-sm text-text-gray hover:bg-gray-100">Sign Out</button>
+                                        </div>
+                                    </div>
+                                `;
+                                console.log('✓ Desktop navbar updated with forced auth data');
+                            }
+                            
+                            if (mobileAuthButton) {
+                                mobileAuthButton.innerHTML = `
+                                    <div class="px-3 py-2 border-t border-gray-200">
+                                        <div class="flex items-center space-x-3 mb-2">
+                                            <div class="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white text-sm font-medium">
+                                                ${userName.charAt(0).toUpperCase()}
+                                            </div>
+                                            <div>
+                                                <div class="text-sm font-medium text-text-dark">${userName}</div>
+                                                <div class="text-xs text-text-gray">${userEmail}</div>
+                                            </div>
+                                        </div>
+                                        <a href="#" onclick="redirectToDashboard()" class="block w-full text-left bg-primary hover:bg-primary-dark text-white px-3 py-2 rounded-md text-sm font-medium transition-colors mb-2">Dashboard</a>
+                                        <button onclick="handleLogout()" class="block w-full text-left text-text-gray hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors">Sign Out</button>
+                                    </div>
+                                `;
+                                console.log('✓ Mobile navbar updated with forced auth data');
+                            }
+                        }, 100);
+                        
+                        // Clear the localStorage data after use
+                        localStorage.removeItem('forceAuthUpdate');
+                    } else {
+                        console.log('Forced auth data is too old, removing...');
+                        localStorage.removeItem('forceAuthUpdate');
+                    }
+                } catch (error) {
+                    console.error('Error parsing forced auth data:', error);
+                    localStorage.removeItem('forceAuthUpdate');
                 }
             }
             
             // Start auth initialization
             setTimeout(initAuth, 100);
+            
+            // Also add a window load event as backup
+            window.addEventListener('load', function() {
+                setTimeout(async () => {
+                    if (typeof window.auth !== 'undefined') {
+                        try {
+                            const user = await window.auth.getCurrentUser();
+                            if (user) {
+                                console.log('Window load backup check - user found:', user.email);
+                                await window.authFunctions.updateNavbarForUser(user);
+                            }
+                        } catch (error) {
+                            console.error('Window load backup check error:', error);
+                        }
+                    }
+                }, 500);
+            });
         });
     </script>
     

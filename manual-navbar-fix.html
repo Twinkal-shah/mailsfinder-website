@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual Navbar Fix</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .result { margin: 10px 0; padding: 10px; background: #f0f0f0; border-radius: 5px; }
+        .error { background: #ffebee; color: #c62828; }
+        .success { background: #e8f5e8; color: #2e7d32; }
+        button { margin: 5px; padding: 10px 15px; cursor: pointer; background: #6366f1; color: white; border: none; border-radius: 5px; }
+        button:hover { background: #4f46e5; }
+    </style>
+</head>
+<body>
+    <h1>Manual Navbar Fix</h1>
+    <p>This page will help diagnose and fix the navbar authentication issue.</p>
+    
+    <button onclick="checkCurrentSession()">Check Current Session</button>
+    <button onclick="forceNavbarUpdate()">Force Navbar Update</button>
+    <button onclick="goToMainPageAndFix()">Go to Main Page & Fix</button>
+    
+    <div id="results"></div>
+
+    <script>
+        function addResult(message, type = 'result') {
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.innerHTML = `<strong>${new Date().toLocaleTimeString()}:</strong> ${message}`;
+            document.getElementById('results').appendChild(div);
+        }
+        
+        async function checkCurrentSession() {
+            addResult('Checking current session...');
+            
+            try {
+                // Check Supabase session directly
+                const { data: { session }, error } = await window.supabaseClient.auth.getSession();
+                
+                if (error) {
+                    addResult(`Session error: ${error.message}`, 'error');
+                    return;
+                }
+                
+                if (session && session.user) {
+                    addResult(`✓ Active session found!`, 'success');
+                    addResult(`User: ${session.user.email}`, 'success');
+                    addResult(`User ID: ${session.user.id}`, 'success');
+                    
+                    // Check if user has profile data
+                    const { data: profile, error: profileError } = await window.supabaseClient
+                        .from('profiles')
+                        .select('*')
+                        .eq('id', session.user.id)
+                        .single();
+                    
+                    if (profileError) {
+                        addResult(`Profile error: ${profileError.message}`, 'error');
+                    } else if (profile) {
+                        addResult(`✓ Profile found: ${profile.full_name || 'No name'}`, 'success');
+                        addResult(`Company: ${profile.company || 'None'}`, 'success');
+                        addResult(`Plan: ${profile.plan}`, 'success');
+                    } else {
+                        addResult('No profile data found', 'error');
+                    }
+                    
+                } else {
+                    addResult('No active session found', 'error');
+                }
+                
+            } catch (error) {
+                addResult(`Check session error: ${error.message}`, 'error');
+                console.error('Session check error:', error);
+            }
+        }
+        
+        async function forceNavbarUpdate() {
+            addResult('Attempting to force navbar update...');
+            
+            try {
+                // Get current session
+                const { data: { session } } = await window.supabaseClient.auth.getSession();
+                
+                if (!session || !session.user) {
+                    addResult('No session found - cannot update navbar', 'error');
+                    return;
+                }
+                
+                const user = session.user;
+                addResult(`Updating navbar for user: ${user.email}`, 'success');
+                
+                // Get profile data
+                let userName = user.email.split('@')[0];
+                try {
+                    const { data: profile } = await window.supabaseClient
+                        .from('profiles')
+                        .select('full_name')
+                        .eq('id', user.id)
+                        .single();
+                    
+                    if (profile && profile.full_name) {
+                        userName = profile.full_name;
+                        addResult(`Using profile name: ${userName}`, 'success');
+                    } else {
+                        addResult(`Using email prefix: ${userName}`, 'success');
+                    }
+                } catch (profileError) {
+                    addResult(`Profile fetch error: ${profileError.message}`, 'error');
+                }
+                
+                // Store the session info in localStorage for the main page
+                localStorage.setItem('forceAuthUpdate', JSON.stringify({
+                    user: {
+                        id: user.id,
+                        email: user.email,
+                        user_metadata: user.user_metadata
+                    },
+                    profile: { full_name: userName },
+                    timestamp: Date.now()
+                }));
+                
+                addResult('✓ Session info stored for main page', 'success');
+                
+            } catch (error) {
+                addResult(`Force update error: ${error.message}`, 'error');
+                console.error('Force update error:', error);
+            }
+        }
+        
+        function goToMainPageAndFix() {
+            addResult('Redirecting to main page with fix...');
+            
+            // First force the navbar update
+            forceNavbarUpdate().then(() => {
+                // Then redirect
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 1000);
+            });
+        }
+        
+        // Initialize when scripts are loaded
+        function init() {
+            addResult('Manual navbar fix page loaded');
+            addResult(`Supabase client: ${typeof window.supabaseClient}`);
+            
+            if (typeof window.supabaseClient !== 'undefined') {
+                addResult('✓ Supabase client loaded', 'success');
+                checkCurrentSession();
+            } else {
+                addResult('Supabase client not loaded', 'error');
+                setTimeout(init, 500);
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(init, 100);
+        });
+    </script>
+    
+    <!-- Load the same scripts as main page -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-config.js"></script>
+</body>
+</html>
