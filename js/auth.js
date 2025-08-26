@@ -437,7 +437,7 @@
                 console.log('User is authenticated:', user);
                 
                 // Update navbar to show user profile
-                updateNavbarForUser(user);
+                await updateNavbarForUser(user);
                 
                 // If on login/signup page and user is authenticated, redirect to dashboard
                 if (window.location.pathname.includes('login.html') || 
@@ -452,13 +452,13 @@
 
     // Listen for auth state changes
     if (typeof window.auth !== 'undefined' && window.auth.onAuthStateChange) {
-        window.auth.onAuthStateChange((event, session) => {
+        window.auth.onAuthStateChange(async (event, session) => {
             console.log('Auth state changed:', event, session);
             
             if (event === 'SIGNED_IN') {
                 console.log('User signed in:', session.user);
                 // Update navbar to show user profile
-                updateNavbarForUser(session.user);
+                await updateNavbarForUser(session.user);
             } else if (event === 'SIGNED_OUT') {
                 console.log('User signed out');
                 // Reset navbar to show login button
@@ -473,14 +473,27 @@
     }
 
     // Update navbar for authenticated user
-    function updateNavbarForUser(user) {
+    async function updateNavbarForUser(user) {
         const authButton = document.querySelector('.auth-button');
         const mobileAuthButton = document.querySelector('.mobile-auth-button');
         
         if (authButton && user) {
-            // Create user profile dropdown
+            // Get user profile data from profiles table
+            let userName = user.email?.split('@')[0] || 'User';
             const userEmail = user.email || 'User';
-            const userName = user.user_metadata?.full_name || userEmail.split('@')[0];
+            
+            try {
+                const userWithData = await window.auth.getCurrentUserWithData();
+                if (userWithData?.profile?.full_name) {
+                    userName = userWithData.profile.full_name;
+                } else if (user.user_metadata?.full_name) {
+                    userName = user.user_metadata.full_name;
+                }
+            } catch (error) {
+                console.error('Error fetching user profile:', error);
+                // Fallback to metadata or email
+                userName = user.user_metadata?.full_name || userEmail.split('@')[0];
+            }
             
             authButton.innerHTML = `
                 <div class="relative">
@@ -504,17 +517,31 @@
         }
         
         if (mobileAuthButton && user) {
+            // Use the same userName that was fetched above
+            let mobileUserName = user.email?.split('@')[0] || 'User';
             const userEmail = user.email || 'User';
-            const userName = user.user_metadata?.full_name || userEmail.split('@')[0];
+            
+            try {
+                const userWithData = await window.auth.getCurrentUserWithData();
+                if (userWithData?.profile?.full_name) {
+                    mobileUserName = userWithData.profile.full_name;
+                } else if (user.user_metadata?.full_name) {
+                    mobileUserName = user.user_metadata.full_name;
+                }
+            } catch (error) {
+                console.error('Error fetching user profile for mobile:', error);
+                // Fallback to metadata or email
+                mobileUserName = user.user_metadata?.full_name || userEmail.split('@')[0];
+            }
             
             mobileAuthButton.innerHTML = `
                 <div class="px-3 py-2 border-t border-gray-200">
                     <div class="flex items-center space-x-3 mb-2">
                         <div class="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white text-sm font-medium">
-                            ${userName.charAt(0).toUpperCase()}
+                            ${mobileUserName.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                            <div class="text-sm font-medium text-text-dark">${userName}</div>
+                            <div class="text-sm font-medium text-text-dark">${mobileUserName}</div>
                             <div class="text-xs text-text-gray">${userEmail}</div>
                         </div>
                     </div>
