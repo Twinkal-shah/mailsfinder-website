@@ -450,38 +450,27 @@
         }
     }
 
-    // Setup auth state change listener
-    function setupAuthStateListener() {
-        if (typeof window.auth !== 'undefined' && window.auth.onAuthStateChange) {
-            console.log('Setting up auth state change listener...');
-            window.auth.onAuthStateChange((event, session) => {
-                console.log('Auth state changed:', event, session);
-                
-                if (event === 'SIGNED_IN') {
-                    console.log('User signed in:', session.user);
-                    // Update navbar to show user profile
-                    updateNavbarForUser(session.user);
-                } else if (event === 'SIGNED_OUT') {
-                    console.log('User signed out');
-                    // Reset navbar to show login button
-                    window.location.reload();
-                    // Redirect to login if on protected pages
-                    if (window.location.pathname.includes('dashboard') || 
-                        window.location.pathname.includes('profile')) {
-                        window.location.href = 'login.html';
-                    }
+    // Listen for auth state changes
+    if (typeof window.auth !== 'undefined' && window.auth.onAuthStateChange) {
+        window.auth.onAuthStateChange((event, session) => {
+            console.log('Auth state changed:', event, session);
+            
+            if (event === 'SIGNED_IN') {
+                console.log('User signed in:', session.user);
+                // Update navbar to show user profile
+                updateNavbarForUser(session.user);
+            } else if (event === 'SIGNED_OUT') {
+                console.log('User signed out');
+                // Reset navbar to show login button
+                window.location.reload();
+                // Redirect to login if on protected pages
+                if (window.location.pathname.includes('dashboard') || 
+                    window.location.pathname.includes('profile')) {
+                    window.location.href = 'login.html';
                 }
-            });
-        } else {
-            console.log('Auth object not ready for state listener, retrying...');
-            setTimeout(setupAuthStateListener, 100);
-        }
+            }
+        });
     }
-    
-    // Initialize auth state listener when DOM is ready
-    document.addEventListener('DOMContentLoaded', function() {
-        setupAuthStateListener();
-    });
 
     // Update navbar for authenticated user
     function updateNavbarForUser(user) {
