@@ -998,12 +998,19 @@
             // Add any additional initialization here
             console.log('Mailsfinder homepage loaded successfully!');
             
-            // Check authentication state on page load
-            if (typeof window.auth !== 'undefined') {
-                setTimeout(() => {
-                    checkAuthState();
-                }, 100);
+            // Wait for auth object to be available and check authentication state
+            function waitForAuthAndCheck() {
+                if (typeof window.auth !== 'undefined' && typeof window.checkAuthState === 'function') {
+                    console.log('Auth object available, checking auth state...');
+                    window.checkAuthState();
+                } else {
+                    console.log('Waiting for auth object...');
+                    setTimeout(waitForAuthAndCheck, 100);
+                }
             }
+            
+            // Start checking for auth availability
+            waitForAuthAndCheck();
         });
     </script>
     
