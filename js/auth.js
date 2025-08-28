@@ -72,6 +72,7 @@
         // Build redirect URL with authentication data
         const redirectParams = new URLSearchParams();
         
+        // Add authentication tokens
         if (tokens && tokens.access_token) {
             redirectParams.set('access_token', tokens.access_token);
         }
@@ -80,11 +81,24 @@
             redirectParams.set('refresh_token', tokens.refresh_token);
         }
         
+        if (tokens && tokens.expires_at) {
+            redirectParams.set('expires_at', tokens.expires_at);
+        }
+        
+        // Add user information
         if (user) {
             if (user.id) redirectParams.set('user_id', user.id);
             if (user.email) redirectParams.set('email', encodeURIComponent(user.email));
-            if (user.user_metadata && user.user_metadata.full_name) {
-                redirectParams.set('name', encodeURIComponent(user.user_metadata.full_name));
+            
+            // Try multiple sources for user name
+            const userName = user.user_metadata?.full_name || 
+                           user.user_metadata?.name || 
+                           `${user.user_metadata?.first_name || ''} ${user.user_metadata?.last_name || ''}`.trim() ||
+                           user.email?.split('@')[0] || 
+                           'User';
+            
+            if (userName) {
+                redirectParams.set('name', encodeURIComponent(userName));
             }
         }
         
@@ -92,7 +106,10 @@
         const separator = returnUrl.includes('?') ? '&' : '?';
         const finalRedirectUrl = `${returnUrl}${separator}${redirectParams.toString()}`;
         
-        console.log('Redirecting to:', finalRedirectUrl);
+        console.log('Authentication successful, redirecting with tokens to:', finalRedirectUrl);
+        console.log('User data:', user);
+        console.log('Tokens:', tokens);
+        
         window.location.href = finalRedirectUrl;
     }
 
@@ -187,7 +204,18 @@
 
                 // Redirect after successful login using dynamic return URL
                 setTimeout(() => {
-                    redirectAfterAuth(result.user, result.tokens);
+                    // Extract user and session data from Supabase result
+                    const user = result.data?.user;
+                    const session = result.data?.session;
+                    
+                    // Pass session tokens to redirect function
+                    const tokens = {
+                        access_token: session?.access_token,
+                        refresh_token: session?.refresh_token,
+                        expires_at: session?.expires_at
+                    };
+                    
+                    redirectAfterAuth(user, tokens);
                 }, 1500);
             } else {
                 // Handle specific error cases
