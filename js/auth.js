@@ -10,7 +10,7 @@
     function initializeAuth() {
         // Check if we're on login or signup page
         const isLoginPage = document.getElementById('loginForm');
-        const isSignupPage = document.getElementById('signupPage');
+        const isSignupPage = document.getElementById('signupForm');
 
         if (isLoginPage) {
             initializeLoginPage();
@@ -22,95 +22,6 @@
 
         // Check authentication state
         checkAuthState();
-    }
-
-    // Get return URL from query parameters with security validation
-    function getReturnUrl() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const returnUrl = urlParams.get('return_url');
-        
-        // Define allowed return domains for security
-        const allowedDomains = [
-            'http://localhost:5173',
-            'http://localhost:3000',
-            'http://127.0.0.1:5173',
-            'https://app.mailsfinder.com'
-        ];
-        
-        if (returnUrl && isValidReturnUrl(returnUrl, allowedDomains)) {
-            return returnUrl;
-        }
-        
-        // Auto-detect localhost environment when no return_url is provided
-        const currentOrigin = window.location.origin;
-        if (currentOrigin.includes('localhost') || currentOrigin.includes('127.0.0.1')) {
-            // Default to common development port for dashboard
-            return 'http://localhost:5173';
-        }
-        
-        // Default to production domain
-        return 'https://app.mailsfinder.com';
-    }
-
-    // Validate return URL for security (prevent open redirect vulnerabilities)
-    function isValidReturnUrl(url, allowedDomains) {
-        try {
-            const parsedUrl = new URL(url);
-            return allowedDomains.some(domain => {
-                const allowedUrl = new URL(domain);
-                return parsedUrl.origin === allowedUrl.origin;
-            });
-        } catch {
-            return false;
-        }
-    }
-
-    // Redirect after successful authentication with user data and tokens
-    function redirectAfterAuth(user, tokens) {
-        const returnUrl = getReturnUrl();
-        
-        // Build redirect URL with authentication data
-        const redirectParams = new URLSearchParams();
-        
-        // Add authentication tokens
-        if (tokens && tokens.access_token) {
-            redirectParams.set('access_token', tokens.access_token);
-        }
-        
-        if (tokens && tokens.refresh_token) {
-            redirectParams.set('refresh_token', tokens.refresh_token);
-        }
-        
-        if (tokens && tokens.expires_at) {
-            redirectParams.set('expires_at', tokens.expires_at);
-        }
-        
-        // Add user information
-        if (user) {
-            if (user.id) redirectParams.set('user_id', user.id);
-            if (user.email) redirectParams.set('email', encodeURIComponent(user.email));
-            
-            // Try multiple sources for user name
-            const userName = user.user_metadata?.full_name || 
-                           user.user_metadata?.name || 
-                           `${user.user_metadata?.first_name || ''} ${user.user_metadata?.last_name || ''}`.trim() ||
-                           user.email?.split('@')[0] || 
-                           'User';
-            
-            if (userName) {
-                redirectParams.set('name', encodeURIComponent(userName));
-            }
-        }
-        
-        // Construct final redirect URL
-        const separator = returnUrl.includes('?') ? '&' : '?';
-        const finalRedirectUrl = `${returnUrl}${separator}${redirectParams.toString()}`;
-        
-        console.log('Authentication successful, redirecting with tokens to:', finalRedirectUrl);
-        console.log('User data:', user);
-        console.log('Tokens:', tokens);
-        
-        window.location.href = finalRedirectUrl;
     }
 
     // Initialize Login Page
@@ -202,20 +113,9 @@
                     localStorage.removeItem('rememberMe');
                 }
 
-                // Redirect after successful login using dynamic return URL
+                // Redirect after successful login to dashboard
                 setTimeout(() => {
-                    // Extract user and session data from Supabase result
-                    const user = result.data?.user;
-                    const session = result.data?.session;
-                    
-                    // Pass session tokens to redirect function
-                    const tokens = {
-                        access_token: session?.access_token,
-                        refresh_token: session?.refresh_token,
-                        expires_at: session?.expires_at
-                    };
-                    
-                    redirectAfterAuth(user, tokens);
+                    window.location.href = 'https://app.mailsfinder.com';
                 }, 1500);
             } else {
                 // Handle specific error cases
