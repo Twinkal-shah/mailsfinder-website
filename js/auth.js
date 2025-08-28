@@ -10,7 +10,7 @@
     function initializeAuth() {
         // Check if we're on login or signup page
         const isLoginPage = document.getElementById('loginForm');
-        const isSignupPage = document.getElementById('signupForm');
+        const isSignupPage = document.getElementById('signupPage');
 
         if (isLoginPage) {
             initializeLoginPage();
@@ -22,6 +22,78 @@
 
         // Check authentication state
         checkAuthState();
+    }
+
+    // Get return URL from query parameters with security validation
+    function getReturnUrl() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const returnUrl = urlParams.get('return_url');
+        
+        // Define allowed return domains for security
+        const allowedDomains = [
+            'http://localhost:5173',
+            'http://localhost:3000',
+            'http://127.0.0.1:5173',
+            'https://app.mailsfinder.com'
+        ];
+        
+        if (returnUrl && isValidReturnUrl(returnUrl, allowedDomains)) {
+            return returnUrl;
+        }
+        
+        // Auto-detect localhost environment when no return_url is provided
+        const currentOrigin = window.location.origin;
+        if (currentOrigin.includes('localhost') || currentOrigin.includes('127.0.0.1')) {
+            // Default to common development port for dashboard
+            return 'http://localhost:5173';
+        }
+        
+        // Default to production domain
+        return 'https://app.mailsfinder.com';
+    }
+
+    // Validate return URL for security (prevent open redirect vulnerabilities)
+    function isValidReturnUrl(url, allowedDomains) {
+        try {
+            const parsedUrl = new URL(url);
+            return allowedDomains.some(domain => {
+                const allowedUrl = new URL(domain);
+                return parsedUrl.origin === allowedUrl.origin;
+            });
+        } catch {
+            return false;
+        }
+    }
+
+    // Redirect after successful authentication with user data and tokens
+    function redirectAfterAuth(user, tokens) {
+        const returnUrl = getReturnUrl();
+        
+        // Build redirect URL with authentication data
+        const redirectParams = new URLSearchParams();
+        
+        if (tokens && tokens.access_token) {
+            redirectParams.set('access_token', tokens.access_token);
+        }
+        
+        if (tokens && tokens.refresh_token) {
+            redirectParams.set('refresh_token', tokens.refresh_token);
+        }
+        
+        if (user) {
+            if (user.id) redirectParams.set('user_id', user.id);
+            if (user.email) redirectParams.set('email', encodeURIComponent(user.email));
+            if (user.user_metadata && user.user_metadata.full_name) {
+                redirectParams.set('name', encodeURIComponent(user.user_metadata.full_name));
+            }
+        }
+        
+        // Construct final redirect URL
+        const separator = returnUrl.includes('?') ? '&' : '?';
+        const finalRedirectUrl = `${returnUrl}${separator}${redirectParams.toString()}`;
+        
+        console.log('Redirecting to:', finalRedirectUrl);
+        window.location.href = finalRedirectUrl;
     }
 
     // Initialize Login Page
@@ -113,9 +185,9 @@
                     localStorage.removeItem('rememberMe');
                 }
 
-                // Redirect after successful login to dashboard
+                // Redirect after successful login using dynamic return URL
                 setTimeout(() => {
-                    window.location.href = 'https://app.mailsfinder.com';
+                    redirectAfterAuth(result.user, result.tokens);
                 }, 1500);
             } else {
                 // Handle specific error cases
