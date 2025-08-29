@@ -459,6 +459,12 @@
                 console.log('User signed in:', session.user);
                 // Update navbar to show user profile
                 await updateNavbarForUser(session.user);
+            } else if (event === 'INITIAL_SESSION') {
+                // Supabase v2 emits INITIAL_SESSION on load when a session already exists
+                if (session?.user) {
+                    console.log('Initial session detected, updating navbar for existing user');
+                    await updateNavbarForUser(session.user);
+                }
             } else if (event === 'SIGNED_OUT') {
                 console.log('User signed out');
                 // Reset navbar to show login button
@@ -473,29 +479,44 @@
     }
 
     // Update navbar for authenticated user
-    async function updateNavbarForUser(user) {
-        const authButton = document.querySelector('.auth-button');
-        const mobileAuthButton = document.querySelector('.mobile-auth-button');
-        
-        if (authButton && user) {
-            // Get user profile data from profiles table
+    async function updateNavbarForUser(user, _retryCount = 0) {
+        // Prefer IDs (unique) then fallback to class selectors
+        let authButton = document.getElementById('authButton') || document.querySelector('.auth-button');
+        let mobileAuthButton = document.getElementById('mobileAuthButton') || document.querySelector('.mobile-auth-button');
+
+        // If DOM not ready or elements not yet mounted, retry a few times
+        if ((!authButton && !mobileAuthButton) && _retryCount < 5) {
+            console.log(`[Navbar] Targets not ready (retry ${_retryCount + 1}/5) – delaying updateNavbarForUser`);
+            await new Promise(r => setTimeout(r, 200));
+            return updateNavbarForUser(user, _retryCount + 1);
+        }
+
+        if (!user) {
+            console.warn('[Navbar] No user provided to updateNavbarForUser');
+            return;
+        }
+
+        try {
+            // Compute default display values
             let userName = user.email?.split('@')[0] || 'User';
             const userEmail = user.email || 'User';
-            
-            try {
-                const userWithData = await window.auth.getCurrentUserWithData();
-                if (userWithData?.profile?.full_name) {
-                    userName = userWithData.profile.full_name;
-                } else if (user.user_metadata?.full_name) {
-                    userName = user.user_metadata.full_name;
-                }
-            } catch (error) {
-                console.error('Error fetching user profile:', error);
-                // Fallback to metadata or email
-                userName = user.user_metadata?.full_name || userEmail.split('@')[0];
+
+            // Race profile fetch with a timeout so UI doesn’t stall
+            const withTimeout = (p, ms) => Promise.race([
+                p,
+                new Promise(resolve => setTimeout(() => resolve(null), ms))
+            ]);
+
+            const userWithData = await withTimeout(window.auth.getCurrentUserWithData(), 1500);
+
+            if (userWithData?.profile?.full_name) {
+                userName = userWithData.profile.full_name;
+            } else if (user.user_metadata?.full_name) {
+                userName = user.user_metadata.full_name;
             }
-            
-            authButton.innerHTML = `
+
+            if (authButton) {
+                authButton.innerHTML = `
                 <div class="relative">
                     <button class="flex items-center space-x-2 text-text-gray hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors" onclick="toggleUserDropdown()">
                         <div class="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white text-sm font-medium">
@@ -512,29 +533,13 @@
                         <a href="#" onclick="redirectToDashboard()" class="block px-4 py-2 text-sm text-text-gray hover:bg-gray-100">Dashboard</a>
                         <button onclick="handleLogout()" class="block w-full text-left px-4 py-2 text-sm text-text-gray hover:bg-gray-100">Sign Out</button>
                     </div>
-                </div>
-            `;
-        }
-        
-        if (mobileAuthButton && user) {
-            // Use the same userName that was fetched above
-            let mobileUserName = user.email?.split('@')[0] || 'User';
-            const userEmail = user.email || 'User';
-            
-            try {
-                const userWithData = await window.auth.getCurrentUserWithData();
-                if (userWithData?.profile?.full_name) {
-                    mobileUserName = userWithData.profile.full_name;
-                } else if (user.user_metadata?.full_name) {
-                    mobileUserName = user.user_metadata.full_name;
-                }
-            } catch (error) {
-                console.error('Error fetching user profile for mobile:', error);
-                // Fallback to metadata or email
-                mobileUserName = user.user_metadata?.full_name || userEmail.split('@')[0];
+                </div>`;
+                console.log('[Navbar] ✓ Desktop navbar updated');
             }
-            
-            mobileAuthButton.innerHTML = `
+
+            if (mobileAuthButton) {
+                const mobileUserName = userName; // keep same name for consistency
+                mobileAuthButton.innerHTML = `
                 <div class="px-3 py-2 border-t border-gray-200">
                     <div class="flex items-center space-x-3 mb-2">
                         <div class="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white text-sm font-medium">
@@ -547,8 +552,11 @@
                     </div>
                     <a href="#" onclick="redirectToDashboard()" class="block w-full text-left bg-primary hover:bg-primary-dark text-white px-3 py-2 rounded-md text-sm font-medium transition-colors mb-2">Dashboard</a>
                     <button onclick="handleLogout()" class="block w-full text-left text-text-gray hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors">Sign Out</button>
-                </div>
-            `;
+                </div>`;
+                console.log('[Navbar] ✓ Mobile navbar updated');
+            }
+        } catch (error) {
+            console.error('[Navbar] Error updating navbar for user:', error);
         }
     }
     
