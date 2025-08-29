@@ -2,13 +2,13 @@
 const SUPABASE_URL = 'https://wbcfsffssphgvpnbrvve.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndiY2ZzZmZzc3BoZ3ZwbmJydnZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUxNzM3NTQsImV4cCI6MjA3MDc0OTc1NH0.3GV4dQm0Aqm8kbNzPJYOCFLnvhyNqxCJCtwfmUAw29Y';
 
-// Initialize Supabase client with session persistence
+// Initialize Supabase client
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
-        storage: window.localStorage,
-        autoRefreshToken: true,
         persistSession: true,
-        detectSessionInUrl: true
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        flowType: 'pkce'
     }
 });
 
@@ -65,62 +65,36 @@ const userManager = {
                 })
                 .select()
                 .single();
-
-            if (error) {
-                console.error('Error creating/updating user:', {
-                    error: error,
-                    message: error.message,
-                    details: error.details,
-                    hint: error.hint,
-                    code: error.code
-                });
-                return { success: false, error: error.message, fullError: error };
-            }
-
-            console.log('User created/updated successfully:', data);
             
-            // Verify the data was actually saved
-            const { data: verifyData, error: verifyError } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', userData.id)
-                .single();
-                
-            if (verifyError) {
-                console.error('Error verifying saved data:', verifyError);
-            } else {
-                console.log('Verified saved data:', verifyData);
-            }
+            if (error) throw error;
             
-            return { success: true, data, verified: verifyData };
+            console.log('Upsert successful, data returned:', data);
+            return { success: true, data };
         } catch (error) {
-            console.error('User management error:', error);
+            console.error('Error in createOrUpdateUser:', error);
             return { success: false, error: error.message };
         }
     },
 
-    // Get user from custom profiles table
+    // Get user by ID
     async getUser(userId) {
         try {
+            console.log('Fetching user from profiles table for ID:', userId);
             const { data, error } = await supabase
                 .from('profiles')
                 .select('*')
                 .eq('id', userId)
                 .single();
-
-            if (error) {
-                console.error('Error fetching user:', error);
-                return { success: false, error: error.message };
-            }
-
+            
+            if (error) throw error;
             return { success: true, data };
         } catch (error) {
-            console.error('Get user error:', error);
+            console.error('Error fetching user:', error);
             return { success: false, error: error.message };
         }
     },
 
-    // Update user credits
+    // Update credits
     async updateCredits(userId, creditsFind, creditsVerify) {
         try {
             const { data, error } = await supabase
@@ -128,77 +102,50 @@ const userManager = {
                 .update({
                     credits_find: creditsFind,
                     credits_verify: creditsVerify,
-                    credits: creditsFind + creditsVerify, // Update total credits
                     updated_at: new Date().toISOString()
                 })
                 .eq('id', userId)
                 .select()
                 .single();
-
-            if (error) {
-                console.error('Error updating credits:', error);
-                return { success: false, error: error.message };
-            }
-
+            
+            if (error) throw error;
             return { success: true, data };
         } catch (error) {
-            console.error('Update credits error:', error);
+            console.error('Error updating credits:', error);
             return { success: false, error: error.message };
         }
     },
 
-    // Deduct credits for email finding
+    // Deduct find credits
     async deductFindCredits(userId, amount = 1) {
         try {
-            // First get current credits
-            const userResult = await this.getUser(userId);
-            if (!userResult.success) {
-                return { success: false, error: 'Failed to get user data' };
-            }
-
-            const currentCredits = userResult.data.credits_find || 0;
-            if (currentCredits < amount) {
-                return { success: false, error: 'Insufficient credits for email finding' };
-            }
-
-            const newCredits = currentCredits - amount;
-            const updateResult = await this.updateCredits(userId, newCredits, userResult.data.credits_verify || 0);
+            // Get current credits
+            const user = await this.getUser(userId);
+            if (!user.success) throw new Error('Failed to fetch user for deducting credits');
             
-            if (updateResult.success) {
-                console.log(`Deducted ${amount} find credit(s). Remaining: ${newCredits}`);
-            }
+            const newCreditsFind = Math.max(0, (user.data.credits_find || 0) - amount);
             
-            return updateResult;
+            // Update credits
+            return await this.updateCredits(userId, newCreditsFind, user.data.credits_verify || 0);
         } catch (error) {
-            console.error('Deduct find credits error:', error);
+            console.error('Error deducting find credits:', error);
             return { success: false, error: error.message };
         }
     },
 
-    // Deduct credits for email verification
+    // Deduct verify credits
     async deductVerifyCredits(userId, amount = 1) {
         try {
-            // First get current credits
-            const userResult = await this.getUser(userId);
-            if (!userResult.success) {
-                return { success: false, error: 'Failed to get user data' };
-            }
-
-            const currentCredits = userResult.data.credits_verify || 0;
-            if (currentCredits < amount) {
-                return { success: false, error: 'Insufficient credits for email verification' };
-            }
-
-            const newCredits = currentCredits - amount;
-            const updateResult = await this.updateCredits(userId, userResult.data.credits_find || 0, newCredits);
+            // Get current credits
+            const user = await this.getUser(userId);
+            if (!user.success) throw new Error('Failed to fetch user for deducting credits');
             
-            if (updateResult.success) {
-                console.log(`Deducted ${amount} verify credit(s). Remaining: ${newCredits}`);
-            }
+            const newCreditsVerify = Math.max(0, (user.data.credits_verify || 0) - amount);
             
-            return updateResult;
+            // Update credits
+            return await this.updateCredits(userId, user.data.credits_find || 0, newCreditsVerify);
         } catch (error) {
-            console.error('Deduct verify credits error:', error);
+            console.error('Error deducting verify credits:', error);
             return { success: false, error: error.message };
         }
     },
@@ -207,41 +154,34 @@ const userManager = {
     async updatePlan(userId, plan, planExpiry = null, subscriptionId = null, customerId = null) {
         try {
             const updateData = {
-                plan: plan,
+                plan,
                 updated_at: new Date().toISOString()
             };
-
+            
             if (planExpiry) updateData.plan_expiry = planExpiry;
             if (subscriptionId) updateData.subscription_id = subscriptionId;
             if (customerId) updateData.customer_id = customerId;
-
+            
             const { data, error } = await supabase
                 .from('profiles')
                 .update(updateData)
                 .eq('id', userId)
                 .select()
                 .single();
-
-            if (error) {
-                console.error('Error updating plan:', error);
-                return { success: false, error: error.message };
-            }
-
+            
+            if (error) throw error;
             return { success: true, data };
         } catch (error) {
-            console.error('Update plan error:', error);
+            console.error('Error updating plan:', error);
             return { success: false, error: error.message };
         }
     }
 };
 
-// Authentication helper functions
 const auth = {
     // Sign up new user
     async signUp(email, password, userData = {}) {
         try {
-            console.log('Starting signup with userData:', userData);
-            
             const { data, error } = await supabase.auth.signUp({
                 email: email,
                 password: password,
@@ -334,27 +274,8 @@ const auth = {
     // Get current user
     async getCurrentUser() {
         try {
-            // First try to get the current session
-            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-            
-            if (sessionError) {
-                console.error('Session retrieval error:', sessionError);
-                return null;
-            }
-            
-            if (session && session.user) {
-                return session.user;
-            }
-            
-            // Fallback to getUser if no session
-            const { data: { user }, error: userError } = await supabase.auth.getUser();
-            
-            if (userError) {
-                console.error('Get current user error:', userError);
-                return null;
-            }
-            
-            return user;
+            const { data: { session } } = await supabase.auth.getSession();
+            return session?.user || null;
         } catch (error) {
             console.error('Get current user error:', error);
             return null;

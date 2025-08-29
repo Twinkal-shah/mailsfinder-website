@@ -434,13 +434,6 @@
             });
         });
 
-        // Check authentication state after a short delay to ensure auth scripts are loaded
-        setTimeout(() => {
-            if (typeof window.checkAuthState === 'function') {
-                window.checkAuthState();
-            }
-        }, 500);
-
         console.log('Mailsfinder homepage initialized successfully!');
     }
 

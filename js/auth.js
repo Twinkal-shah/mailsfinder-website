@@ -113,9 +113,9 @@
                     localStorage.removeItem('rememberMe');
                 }
 
-                // Redirect after successful login to home page
+                // Redirect after successful login to dashboard
                 setTimeout(() => {
-                    window.location.href = 'index.html';
+                    window.location.href = 'https://app.mailsfinder.com';
                 }, 1500);
             } else {
                 // Handle specific error cases
@@ -430,40 +430,19 @@
     // Check Authentication State
     async function checkAuthState() {
         try {
-            // First try to get the current session
-            const { data: { session }, error } = await window.supabaseClient.auth.getSession();
+            const user = await window.auth.getCurrentUser();
             
-            if (error) {
-                console.error('Session retrieval error:', error);
-                return;
-            }
-            
-            if (session && session.user) {
-                // User has an active session
-                console.log('Active session found for user:', session.user.email);
+            if (user) {
+                // User is logged in
+                console.log('User is authenticated:', user);
                 
                 // Update navbar to show user profile
-                await updateNavbarForUser(session.user);
+                await updateNavbarForUser(user);
                 
                 // If on login/signup page and user is authenticated, redirect to dashboard
                 if (window.location.pathname.includes('login.html') || 
                     window.location.pathname.includes('signup.html')) {
                     window.location.href = 'index.html';
-                }
-            } else {
-                // No active session, try getCurrentUser as fallback
-                const user = await window.auth.getCurrentUser();
-                
-                if (user) {
-                    console.log('User found via getCurrentUser:', user.email);
-                    await updateNavbarForUser(user);
-                    
-                    if (window.location.pathname.includes('login.html') || 
-                        window.location.pathname.includes('signup.html')) {
-                        window.location.href = 'index.html';
-                    }
-                } else {
-                    console.log('No authenticated user found');
                 }
             }
         } catch (error) {
@@ -608,10 +587,8 @@
             const { data: { session } } = await window.supabaseClient.auth.getSession();
             
             if (session && session.access_token) {
-                // For now, redirect to index page (change to dashboard when available)
-                // TODO: Change to actual dashboard URL when dashboard page is created
-                // window.location.href = 'https://app.mailsfinder.com';
-                window.location.href = 'index.html';
+                // Redirect directly to dashboard
+                window.location.href = 'https://app.mailsfinder.com';
             } else {
                 // If no session, redirect to login
                 window.location.href = 'login.html';

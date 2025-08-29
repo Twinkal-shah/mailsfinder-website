@@ -997,62 +997,113 @@
         document.addEventListener('DOMContentLoaded', function() {
             // Add any additional initialization here
             console.log('Mailsfinder homepage loaded successfully!');
-        });
-        
-        // Authentication initialization moved to after auth scripts are loaded
-    </script>
-    
-    <!-- Supabase -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/supabase-config.js"></script>
-    <script src="js/auth.js"></script>
-    
-    <!-- Authentication Initialization - Must be after auth scripts -->
-    <script>
-        // Authentication initialization variables
-        let authInitialized = false;
-        
-        async function initAuth() {
-            if (authInitialized) return;
             
-            console.log('Initializing authentication system...');
+            // Aggressive authentication check with multiple retries
+            let authCheckAttempts = 0;
+            const maxAuthAttempts = 10;
             
-            // Wait for auth system to be available
-            let attempts = 0;
-            const maxAttempts = 20;
-            
-            while (attempts < maxAttempts && (typeof window.auth === 'undefined' || typeof window.authFunctions === 'undefined')) {
-                await new Promise(resolve => setTimeout(resolve, 100));
-                attempts++;
+            function initAuth() {
+                authCheckAttempts++;
+                console.log(`Auth check attempt ${authCheckAttempts}/${maxAuthAttempts}`);
+                
+                if (typeof window.auth !== 'undefined' && typeof window.authFunctions !== 'undefined') {
+                    console.log('Auth system loaded, checking auth state...');
+                    
+                    // Force check authentication state
+                    window.authFunctions.checkAuthState().then(() => {
+                        console.log('Initial auth check completed');
+                        
+                        // Double-check after a short delay
+                        setTimeout(async () => {
+                            try {
+                                const user = await window.auth.getCurrentUser();
+                                if (user) {
+                                    console.log('User found on double-check, forcing navbar update:', user.email);
+                                    await window.authFunctions.updateNavbarForUser(user);
+                                } else {
+                                    console.log('No user found on double-check');
+                                }
+                            } catch (error) {
+                                console.error('Double-check auth error:', error);
+                            }
+                        }, 1000);
+                    }).catch(error => {
+                        console.error('Auth check error:', error);
+                    });
+                    
+                } else if (authCheckAttempts < maxAuthAttempts) {
+                    console.log('Auth system not ready, retrying in 300ms...');
+                    setTimeout(initAuth, 300);
+                } else {
+                    console.error('Auth system failed to load after maximum attempts');
+                }
             }
             
-            if (typeof window.auth === 'undefined' || typeof window.authFunctions === 'undefined') {
-                console.error('Auth system failed to load after maximum attempts');
-                return;
-            }
-            
-            authInitialized = true;
-            console.log('Auth system loaded, checking authentication state...');
-            
-            try {
-                // Check authentication state
-                await window.authFunctions.checkAuthState();
-                console.log('Authentication state check completed');
-            } catch (error) {
-                console.error('Auth state check error:', error);
-            }
-        }
-        
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM loaded, initializing authentication...');
-            
-            // Check for forced auth update
-            const forceAuthUpdate = localStorage.getItem('forceAuthUpdate');
-            if (forceAuthUpdate) {
+            // Check for forced auth update from localStorage
+            const forceAuthData = localStorage.getItem('forceAuthUpdate');
+            if (forceAuthData) {
                 try {
-                    const authData = JSON.parse(forceAuthUpdate);
-                    console.log('Found forced auth update:', authData);
-                    localStorage.removeItem('forceAuthUpdate');
+                    const authData = JSON.parse(forceAuthData);
+                    // Check if data is recent (within 5 minutes)
+                    if (Date.now() - authData.timestamp < 300000) {
+                        console.log('Found forced auth data, applying immediately:', authData);
+                        
+                        // Apply the navbar update immediately
+                        setTimeout(async () => {
+                            const authButton = document.getElementById('authButton');
+                            const mobileAuthButton = document.getElementById('mobileAuthButton');
+                            const userName = authData.profile?.full_name || authData.user.email.split('@')[0];
+                            const userEmail = authData.user.email;
+                            
+                            if (authButton) {
+                                authButton.innerHTML = `
+                                    <div class="relative">
+                                        <button class="flex items-center space-x-2 text-text-gray hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors" onclick="toggleUserDropdown()">
+                                            <div class="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white text-sm font-medium">
+                                                ${userName.charAt(0).toUpperCase()}
+                                            </div>
+                                            <span class="hidden lg:block">${userName}</span>
+                                            <i class="fas fa-chevron-down text-xs"></i>
+                                        </button>
+                                        <div id="userDropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 border" style="z-index: 9999;">
+                                            <div class="px-4 py-2 text-sm text-text-gray border-b">
+                                                <div class="font-medium">${userName}</div>
+                                                <div class="text-xs text-text-gray">${userEmail}</div>
+                                            </div>
+                                            <a href="#" onclick="redirectToDashboard()" class="block px-4 py-2 text-sm text-text-gray hover:bg-gray-100">Dashboard</a>
+                                            <button onclick="handleLogout()" class="block w-full text-left px-4 py-2 text-sm text-text-gray hover:bg-gray-100">Sign Out</button>
+                                        </div>
+                                    </div>
+                                `;
+                                console.log('✓ Desktop navbar updated with forced auth data');
+                            }
+                            
+                            if (mobileAuthButton) {
+                                mobileAuthButton.innerHTML = `
+                                    <div class="px-3 py-2 border-t border-gray-200">
+                                        <div class="flex items-center space-x-3 mb-2">
+                                            <div class="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white text-sm font-medium">
+                                                ${userName.charAt(0).toUpperCase()}
+                                            </div>
+                                            <div>
+                                                <div class="text-sm font-medium text-text-dark">${userName}</div>
+                                                <div class="text-xs text-text-gray">${userEmail}</div>
+                                            </div>
+                                        </div>
+                                        <a href="#" onclick="redirectToDashboard()" class="block w-full text-left bg-primary hover:bg-primary-dark text-white px-3 py-2 rounded-md text-sm font-medium transition-colors mb-2">Dashboard</a>
+                                        <button onclick="handleLogout()" class="block w-full text-left text-text-gray hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors">Sign Out</button>
+                                    </div>
+                                `;
+                                console.log('✓ Mobile navbar updated with forced auth data');
+                            }
+                        }, 100);
+                        
+                        // Clear the localStorage data after use
+                        localStorage.removeItem('forceAuthUpdate');
+                    } else {
+                        console.log('Forced auth data is too old, removing...');
+                        localStorage.removeItem('forceAuthUpdate');
+                    }
                 } catch (error) {
                     console.error('Error parsing forced auth data:', error);
                     localStorage.removeItem('forceAuthUpdate');
@@ -1060,17 +1111,30 @@
             }
             
             // Start auth initialization
-            initAuth();
+            setTimeout(initAuth, 100);
             
             // Also add a window load event as backup
             window.addEventListener('load', function() {
-                // Only run backup if auth wasn't already initialized
-                if (!authInitialized) {
-                    console.log('Running backup auth initialization on window load');
-                    initAuth();
-                }
+                setTimeout(async () => {
+                    if (typeof window.auth !== 'undefined') {
+                        try {
+                            const user = await window.auth.getCurrentUser();
+                            if (user) {
+                                console.log('Window load backup check - user found:', user.email);
+                                await window.authFunctions.updateNavbarForUser(user);
+                            }
+                        } catch (error) {
+                            console.error('Window load backup check error:', error);
+                        }
+                    }
+                }, 500);
             });
         });
     </script>
+    
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-config.js"></script>
+    <script src="js/auth.js"></script>
 </body>
 </html>
