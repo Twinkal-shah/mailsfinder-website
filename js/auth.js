@@ -465,6 +465,11 @@
                     console.log('Initial session detected, updating navbar for existing user');
                     await updateNavbarForUser(session.user);
                 }
+            } else if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+                if (session?.user) {
+                    console.log('Session token refreshed/user updated, ensuring navbar is up to date');
+                    await updateNavbarForUser(session.user);
+                }
             } else if (event === 'SIGNED_OUT') {
                 console.log('User signed out');
                 // Reset navbar to show login button
@@ -477,6 +482,31 @@
             }
         });
     }
+
+    // Helper to ensure navbar is in sync with current session
+    async function ensureNavbarUpdated(reason = 'manual') {
+        try {
+            const user = await window.auth.getCurrentUser();
+            console.log(`[Navbar] ensureNavbarUpdated (${reason}) ->`, !!user);
+            if (user) {
+                await updateNavbarForUser(user);
+            }
+        } catch (e) {
+            console.warn('[Navbar] ensureNavbarUpdated error:', e);
+        }
+    }
+
+    // Refresh navbar when the tab regains focus or page is shown from bfcache
+    window.addEventListener('focus', () => ensureNavbarUpdated('window-focus'));
+    window.addEventListener('pageshow', (e) => {
+        // pageshow fires on back/forward cache restores as well
+        ensureNavbarUpdated(e.persisted ? 'pageshow-bfcache' : 'pageshow');
+    });
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            ensureNavbarUpdated('visibilitychange-visible');
+        }
+    });
 
     // Update navbar for authenticated user
     async function updateNavbarForUser(user, _retryCount = 0) {
@@ -513,6 +543,19 @@
                 userName = userWithData.profile.full_name;
             } else if (user.user_metadata?.full_name) {
                 userName = user.user_metadata.full_name;
+            }
+
+            // Cache for fast restore on next visits (read by index.html's forceAuthUpdate logic)
+            try {
+                const cachePayload = {
+                    user: { id: user.id, email: user.email },
+                    profile: { full_name: userWithData?.profile?.full_name || user.user_metadata?.full_name || userName },
+                    timestamp: Date.now()
+                };
+                localStorage.setItem('forceAuthUpdate', JSON.stringify(cachePayload));
+                console.log('[Navbar] Cached user data for fast restore');
+            } catch (e) {
+                console.warn('[Navbar] Failed to cache user data:', e);
             }
 
             if (authButton) {
