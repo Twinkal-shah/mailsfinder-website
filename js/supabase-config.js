@@ -2,8 +2,15 @@
 const SUPABASE_URL = 'https://wbcfsffssphgvpnbrvve.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndiY2ZzZmZzc3BoZ3ZwbmJydnZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUxNzM3NTQsImV4cCI6MjA3MDc0OTc1NH0.3GV4dQm0Aqm8kbNzPJYOCFLnvhyNqxCJCtwfmUAw29Y';
 
-// Initialize Supabase client
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Initialize Supabase client with session persistence
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+        storage: window.localStorage,
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true
+    }
+});
 
 // User management functions for custom profiles table
 const userManager = {
@@ -327,7 +334,26 @@ const auth = {
     // Get current user
     async getCurrentUser() {
         try {
-            const { data: { user } } = await supabase.auth.getUser();
+            // First try to get the current session
+            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+            
+            if (sessionError) {
+                console.error('Session retrieval error:', sessionError);
+                return null;
+            }
+            
+            if (session && session.user) {
+                return session.user;
+            }
+            
+            // Fallback to getUser if no session
+            const { data: { user }, error: userError } = await supabase.auth.getUser();
+            
+            if (userError) {
+                console.error('Get current user error:', userError);
+                return null;
+            }
+            
             return user;
         } catch (error) {
             console.error('Get current user error:', error);

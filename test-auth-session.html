@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication Session Test - Mailsfinder</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .json-display {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔐 Authentication Session Test</h1>
+    <p>This page tests Supabase authentication session persistence and profile data fetching.</p>
+
+    <div class="test-section">
+        <h2>📊 Current Authentication Status</h2>
+        <button onclick="checkCurrentAuth()">Check Current Auth State</button>
+        <div id="authStatus"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>🔑 Session Management</h2>
+        <button onclick="getSession()">Get Current Session</button>
+        <button onclick="getUser()">Get Current User</button>
+        <button onclick="refreshSession()">Refresh Session</button>
+        <div id="sessionInfo"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>👤 Profile Data Test</h2>
+        <button onclick="fetchProfileData()">Fetch Profile from Database</button>
+        <button onclick="testUserManager()">Test User Manager Functions</button>
+        <div id="profileData"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>🔄 Auth State Listener</h2>
+        <button onclick="setupAuthListener()">Setup Auth State Listener</button>
+        <button onclick="clearAuthListener()">Clear Auth State Listener</button>
+        <div id="authEvents"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>🧪 Manual Login Test</h2>
+        <input type="email" id="testEmail" placeholder="Enter email" style="padding: 8px; margin: 5px; width: 200px;">
+        <input type="password" id="testPassword" placeholder="Enter password" style="padding: 8px; margin: 5px; width: 200px;">
+        <br>
+        <button onclick="testLogin()">Test Login</button>
+        <button onclick="testLogout()">Test Logout</button>
+        <div id="loginResults"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>💾 Local Storage Check</h2>
+        <button onclick="checkLocalStorage()">Check Auth Data in Local Storage</button>
+        <button onclick="clearLocalStorage()">Clear Auth Local Storage</button>
+        <div id="storageInfo"></div>
+    </div>
+
+    <script src="js/supabase-config.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+        let authListener = null;
+        
+        function logResult(containerId, message, type = 'info') {
+            const container = document.getElementById(containerId);
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        function displayJSON(containerId, data, title = '') {
+            const container = document.getElementById(containerId);
+            const div = document.createElement('div');
+            div.innerHTML = `${title ? `<strong>${title}:</strong><br>` : ''}<div class="json-display">${JSON.stringify(data, null, 2)}</div>`;
+            container.appendChild(div);
+        }
+        
+        async function checkCurrentAuth() {
+            logResult('authStatus', 'Checking current authentication state...', 'info');
+            
+            try {
+                // Test window.auth.getCurrentUser
+                const user = await window.auth.getCurrentUser();
+                if (user) {
+                    logResult('authStatus', `✅ User authenticated: ${user.email}`, 'success');
+                    displayJSON('authStatus', user, 'User Object');
+                } else {
+                    logResult('authStatus', '❌ No authenticated user found', 'error');
+                }
+                
+                // Test window.auth.getCurrentUserWithData
+                const userWithData = await window.auth.getCurrentUserWithData();
+                if (userWithData) {
+                    logResult('authStatus', '✅ User with profile data retrieved', 'success');
+                    displayJSON('authStatus', userWithData, 'User with Profile Data');
+                } else {
+                    logResult('authStatus', '❌ No user with profile data found', 'error');
+                }
+                
+            } catch (error) {
+                logResult('authStatus', `❌ Error checking auth: ${error.message}`, 'error');
+                console.error('Auth check error:', error);
+            }
+        }
+        
+        async function getSession() {
+            logResult('sessionInfo', 'Getting current session...', 'info');
+            
+            try {
+                const { data: { session }, error } = await window.supabaseClient.auth.getSession();
+                
+                if (error) {
+                    logResult('sessionInfo', `❌ Session error: ${error.message}`, 'error');
+                    return;
+                }
+                
+                if (session) {
+                    logResult('sessionInfo', '✅ Active session found', 'success');
+                    displayJSON('sessionInfo', {
+                        user: session.user,
+                        access_token: session.access_token ? 'Present' : 'Missing',
+                        refresh_token: session.refresh_token ? 'Present' : 'Missing',
+                        expires_at: session.expires_at,
+                        expires_in: session.expires_in
+                    }, 'Session Data');
+                } else {
+                    logResult('sessionInfo', '❌ No active session', 'error');
+                }
+                
+            } catch (error) {
+                logResult('sessionInfo', `❌ Error getting session: ${error.message}`, 'error');
+                console.error('Session error:', error);
+            }
+        }
+        
+        async function getUser() {
+            logResult('sessionInfo', 'Getting current user...', 'info');
+            
+            try {
+                const { data: { user }, error } = await window.supabaseClient.auth.getUser();
+                
+                if (error) {
+                    logResult('sessionInfo', `❌ User error: ${error.message}`, 'error');
+                    return;
+                }
+                
+                if (user) {
+                    logResult('sessionInfo', '✅ User found via getUser()', 'success');
+                    displayJSON('sessionInfo', user, 'User Data');
+                } else {
+                    logResult('sessionInfo', '❌ No user found', 'error');
+                }
+                
+            } catch (error) {
+                logResult('sessionInfo', `❌ Error getting user: ${error.message}`, 'error');
+                console.error('User error:', error);
+            }
+        }
+        
+        async function refreshSession() {
+            logResult('sessionInfo', 'Refreshing session...', 'info');
+            
+            try {
+                const { data, error } = await window.supabaseClient.auth.refreshSession();
+                
+                if (error) {
+                    logResult('sessionInfo', `❌ Refresh error: ${error.message}`, 'error');
+                    return;
+                }
+                
+                if (data.session) {
+                    logResult('sessionInfo', '✅ Session refreshed successfully', 'success');
+                    displayJSON('sessionInfo', data.session, 'Refreshed Session');
+                } else {
+                    logResult('sessionInfo', '❌ No session to refresh', 'error');
+                }
+                
+            } catch (error) {
+                logResult('sessionInfo', `❌ Error refreshing session: ${error.message}`, 'error');
+                console.error('Refresh error:', error);
+            }
+        }
+        
+        async function fetchProfileData() {
+            logResult('profileData', 'Fetching profile data from database...', 'info');
+            
+            try {
+                const user = await window.auth.getCurrentUser();
+                if (!user) {
+                    logResult('profileData', '❌ No authenticated user to fetch profile for', 'error');
+                    return;
+                }
+                
+                const userResult = await window.userManager.getUser(user.id);
+                
+                if (userResult.success) {
+                    logResult('profileData', '✅ Profile data retrieved successfully', 'success');
+                    displayJSON('profileData', userResult.data, 'Profile Data from Database');
+                } else {
+                    logResult('profileData', `❌ Failed to fetch profile: ${userResult.error}`, 'error');
+                }
+                
+            } catch (error) {
+                logResult('profileData', `❌ Error fetching profile: ${error.message}`, 'error');
+                console.error('Profile fetch error:', error);
+            }
+        }
+        
+        async function testUserManager() {
+            logResult('profileData', 'Testing user manager functions...', 'info');
+            
+            try {
+                const user = await window.auth.getCurrentUser();
+                if (!user) {
+                    logResult('profileData', '❌ No authenticated user for user manager test', 'error');
+                    return;
+                }
+                
+                // Test getCurrentUserWithData
+                const userWithData = await window.auth.getCurrentUserWithData();
+                if (userWithData) {
+                    logResult('profileData', '✅ getCurrentUserWithData() working', 'success');
+                    displayJSON('profileData', userWithData, 'User with Data');
+                } else {
+                    logResult('profileData', '❌ getCurrentUserWithData() returned null', 'error');
+                }
+                
+            } catch (error) {
+                logResult('profileData', `❌ Error testing user manager: ${error.message}`, 'error');
+                console.error('User manager test error:', error);
+            }
+        }
+        
+        function setupAuthListener() {
+            logResult('authEvents', 'Setting up auth state listener...', 'info');
+            
+            try {
+                if (authListener) {
+                    authListener.subscription.unsubscribe();
+                }
+                
+                authListener = window.auth.onAuthStateChange((event, session) => {
+                    logResult('authEvents', `🔔 Auth event: ${event}`, 'info');
+                    if (session) {
+                        displayJSON('authEvents', {
+                            event: event,
+                            user_email: session.user?.email,
+                            session_expires: session.expires_at
+                        }, 'Auth Event Data');
+                    }
+                });
+                
+                logResult('authEvents', '✅ Auth listener setup complete', 'success');
+                
+            } catch (error) {
+                logResult('authEvents', `❌ Error setting up listener: ${error.message}`, 'error');
+                console.error('Auth listener error:', error);
+            }
+        }
+        
+        function clearAuthListener() {
+            if (authListener) {
+                authListener.subscription.unsubscribe();
+                authListener = null;
+                logResult('authEvents', '✅ Auth listener cleared', 'success');
+            } else {
+                logResult('authEvents', '❌ No auth listener to clear', 'error');
+            }
+        }
+        
+        async function testLogin() {
+            const email = document.getElementById('testEmail').value;
+            const password = document.getElementById('testPassword').value;
+            
+            if (!email || !password) {
+                logResult('loginResults', '❌ Please enter both email and password', 'error');
+                return;
+            }
+            
+            logResult('loginResults', `Attempting login for ${email}...`, 'info');
+            
+            try {
+                const result = await window.auth.signIn(email, password);
+                
+                if (result.success) {
+                    logResult('loginResults', '✅ Login successful!', 'success');
+                    displayJSON('loginResults', result, 'Login Result');
+                } else {
+                    logResult('loginResults', `❌ Login failed: ${result.error}`, 'error');
+                }
+                
+            } catch (error) {
+                logResult('loginResults', `❌ Login error: ${error.message}`, 'error');
+                console.error('Login error:', error);
+            }
+        }
+        
+        async function testLogout() {
+            logResult('loginResults', 'Attempting logout...', 'info');
+            
+            try {
+                const result = await window.auth.signOut();
+                
+                if (result.success) {
+                    logResult('loginResults', '✅ Logout successful!', 'success');
+                } else {
+                    logResult('loginResults', `❌ Logout failed: ${result.error}`, 'error');
+                }
+                
+            } catch (error) {
+                logResult('loginResults', `❌ Logout error: ${error.message}`, 'error');
+                console.error('Logout error:', error);
+            }
+        }
+        
+        function checkLocalStorage() {
+            logResult('storageInfo', 'Checking local storage for auth data...', 'info');
+            
+            const authKeys = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.includes('supabase') || key.includes('auth') || key.includes('session')) {
+                    authKeys.push({
+                        key: key,
+                        value: localStorage.getItem(key)
+                    });
+                }
+            }
+            
+            if (authKeys.length > 0) {
+                logResult('storageInfo', `✅ Found ${authKeys.length} auth-related items in localStorage`, 'success');
+                displayJSON('storageInfo', authKeys, 'Auth Data in Local Storage');
+            } else {
+                logResult('storageInfo', '❌ No auth-related data found in localStorage', 'error');
+            }
+        }
+        
+        function clearLocalStorage() {
+            const authKeys = [];
+            for (let i = localStorage.length - 1; i >= 0; i--) {
+                const key = localStorage.key(i);
+                if (key.includes('supabase') || key.includes('auth') || key.includes('session')) {
+                    authKeys.push(key);
+                    localStorage.removeItem(key);
+                }
+            }
+            
+            logResult('storageInfo', `✅ Cleared ${authKeys.length} auth-related items from localStorage`, 'success');
+        }
+        
+        // Auto-run initial checks when page loads
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                checkCurrentAuth();
+                getSession();
+                checkLocalStorage();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

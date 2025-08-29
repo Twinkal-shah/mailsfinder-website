@@ -113,9 +113,9 @@
                     localStorage.removeItem('rememberMe');
                 }
 
-                // Redirect after successful login to dashboard
+                // Redirect after successful login to home page
                 setTimeout(() => {
-                    window.location.href = 'https://app.mailsfinder.com';
+                    window.location.href = 'index.html';
                 }, 1500);
             } else {
                 // Handle specific error cases
@@ -608,8 +608,10 @@
             const { data: { session } } = await window.supabaseClient.auth.getSession();
             
             if (session && session.access_token) {
-                // Redirect directly to dashboard
-                window.location.href = 'https://app.mailsfinder.com';
+                // For now, redirect to index page (change to dashboard when available)
+                // TODO: Change to actual dashboard URL when dashboard page is created
+                // window.location.href = 'https://app.mailsfinder.com';
+                window.location.href = 'index.html';
             } else {
                 // If no session, redirect to login
                 window.location.href = 'login.html';
