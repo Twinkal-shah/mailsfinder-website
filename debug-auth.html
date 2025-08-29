@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Authentication - Mailsfinder</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 1200px; margin: 0 auto; }
+        .result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        .warning { background-color: #fff3cd; color: #856404; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 5px; }
+        button:hover { background: #0056b3; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .navbar-test { background: #f8f9fa; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .auth-button, .mobile-auth-button { border: 2px dashed #007bff; padding: 10px; margin: 5px 0; }
+        input { padding: 8px; margin: 5px; border: 1px solid #ddd; border-radius: 3px; }
+        .login-form { background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Authentication Debug Tool</h1>
+    
+    <div class="test-section">
+        <h2>🔧 System Tests</h2>
+        <button onclick="testSupabaseConnection()">Test Supabase Connection</button>
+        <button onclick="testGetSession()">Test Get Session</button>
+        <button onclick="testCheckAuthState()">Test checkAuthState Function</button>
+        <button onclick="testNavbarElements()">Test Navbar Elements</button>
+        <button onclick="clearResults()">Clear Results</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>🔐 Login Test</h2>
+        <div class="login-form">
+            <div>
+                <input type="email" id="testEmail" placeholder="Email" value="test@example.com">
+                <input type="password" id="testPassword" placeholder="Password" value="password123">
+                <button onclick="testLogin()">Test Login</button>
+                <button onclick="testLogout()">Test Logout</button>
+            </div>
+            <p><small>Try logging in with test credentials to see if authentication works</small></p>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>📱 Navbar Test Elements</h2>
+        <div class="navbar-test">
+            <div class="auth-button" id="testAuthButton">
+                <a href="#" class="bg-primary hover:bg-primary-dark text-white px-6 py-2 rounded-lg font-medium transition-colors inline-block">
+                    Start Finding Emails
+                </a>
+            </div>
+            <div class="mobile-auth-button" id="testMobileAuthButton">
+                <a href="#" class="w-full text-left bg-primary hover:bg-primary-dark text-white px-3 py-2 rounded-md text-base font-medium transition-colors mt-2 block">
+                    Start Finding Emails (Mobile)
+                </a>
+            </div>
+        </div>
+        <button onclick="testNavbarUpdate()">Test Navbar Update</button>
+        <button onclick="simulateUserUpdate()">Simulate User Update</button>
+    </div>
+    
+    <div id="results"></div>
+    
+    <script src="js/supabase-config.js"></script>
+    <script src="js/auth.js"></script>
+    
+    <script>
+        let testResults = [];
+        
+        function addResult(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.innerHTML = `[${timestamp}] ${message}`;
+            results.appendChild(div);
+            testResults.push({timestamp, message, type});
+            console.log(`[${timestamp}] ${message}`);
+            
+            // Auto-scroll to bottom
+            results.scrollTop = results.scrollHeight;
+        }
+        
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+            testResults = [];
+        }
+        
+        async function testSupabaseConnection() {
+            addResult('🔍 Testing Supabase connection...', 'info');
+            
+            try {
+                if (!window.supabaseClient) {
+                    addResult('❌ window.supabaseClient is not defined', 'error');
+                    return false;
+                }
+                
+                addResult('✅ window.supabaseClient exists', 'success');
+                
+                // Test basic connection
+                const { data, error } = await window.supabaseClient.auth.getUser();
+                
+                if (error) {
+                    addResult(`❌ Supabase error: ${error.message}`, 'error');
+                    return false;
+                } else {
+                    addResult('✅ Supabase connection successful', 'success');
+                    if (data.user) {
+                        addResult(`✅ User found: ${data.user.email}`, 'success');
+                        return true;
+                    } else {
+                        addResult('ℹ️ No user currently logged in', 'info');
+                        return true;
+                    }
+                }
+            } catch (error) {
+                addResult(`❌ Connection test failed: ${error.message}`, 'error');
+                return false;
+            }
+        }
+        
+        async function testGetSession() {
+            addResult('🔍 Testing session retrieval...', 'info');
+            
+            try {
+                const { data: { session }, error } = await window.supabaseClient.auth.getSession();
+                
+                if (error) {
+                    addResult(`❌ Session error: ${error.message}`, 'error');
+                    return null;
+                }
+                
+                if (session && session.user) {
+                    addResult('✅ Active session found!', 'success');
+                    addResult(`📧 User: ${session.user.email}`, 'success');
+                    addResult(`🆔 User ID: ${session.user.id}`, 'success');
+                    addResult(`🔑 Access Token: ${session.access_token ? 'Present' : 'Missing'}`, session.access_token ? 'success' : 'error');
+                    return session;
+                } else {
+                    addResult('ℹ️ No active session found', 'info');
+                    return null;
+                }
+            } catch (error) {
+                addResult(`❌ Session test failed: ${error.message}`, 'error');
+                return null;
+            }
+        }
+        
+        async function testCheckAuthState() {
+            addResult('🔍 Testing checkAuthState function...', 'info');
+            
+            try {
+                if (!window.checkAuthState) {
+                    addResult('❌ window.checkAuthState is not defined', 'error');
+                    return false;
+                }
+                
+                addResult('✅ window.checkAuthState exists', 'success');
+                addResult('🔄 Calling checkAuthState()...', 'info');
+                
+                await window.checkAuthState();
+                
+                addResult('✅ checkAuthState() completed', 'success');
+                return true;
+            } catch (error) {
+                addResult(`❌ checkAuthState failed: ${error.message}`, 'error');
+                return false;
+            }
+        }
+        
+        async function testNavbarElements() {
+            addResult('🔍 Testing navbar elements...', 'info');
+            
+            const authButton = document.querySelector('.auth-button');
+            const mobileAuthButton = document.querySelector('.mobile-auth-button');
+            
+            if (authButton) {
+                addResult('✅ .auth-button element found', 'success');
+                addResult(`📝 Current content preview: ${authButton.innerHTML.substring(0, 50)}...`, 'info');
+            } else {
+                addResult('❌ .auth-button element NOT found', 'error');
+            }
+            
+            if (mobileAuthButton) {
+                addResult('✅ .mobile-auth-button element found', 'success');
+            } else {
+                addResult('❌ .mobile-auth-button element NOT found', 'error');
+            }
+            
+            return authButton && mobileAuthButton;
+        }
+        
+        async function testNavbarUpdate() {
+            addResult('🔍 Testing navbar update functionality...', 'info');
+            
+            try {
+                const { data: { session } } = await window.supabaseClient.auth.getSession();
+                
+                if (session && session.user) {
+                    addResult('🔄 Attempting to update navbar with current user...', 'info');
+                    
+                    if (window.authFunctions && window.authFunctions.updateNavbarForUser) {
+                        await window.authFunctions.updateNavbarForUser(session.user);
+                        addResult('✅ Navbar update function called successfully', 'success');
+                        
+                        // Check if navbar actually updated
+                        setTimeout(() => {
+                            const authButton = document.querySelector('.auth-button');
+                            if (authButton && authButton.innerHTML.includes('toggleUserDropdown')) {
+                                addResult('✅ Navbar successfully updated with user dropdown!', 'success');
+                            } else {
+                                addResult('⚠️ Navbar update function ran but navbar content didn\'t change', 'warning');
+                            }
+                        }, 100);
+                    } else {
+                        addResult('❌ updateNavbarForUser function not available', 'error');
+                    }
+                } else {
+                    addResult('ℹ️ No user session to test navbar update', 'info');
+                }
+            } catch (error) {
+                addResult(`❌ Navbar update test failed: ${error.message}`, 'error');
+            }
+        }
+        
+        async function simulateUserUpdate() {
+            addResult('🎭 Simulating user update with fake user data...', 'info');
+            
+            const fakeUser = {
+                id: 'test-user-123',
+                email: 'test@example.com',
+                user_metadata: {
+                    full_name: 'Test User'
+                }
+            };
+            
+            try {
+                if (window.authFunctions && window.authFunctions.updateNavbarForUser) {
+                    await window.authFunctions.updateNavbarForUser(fakeUser);
+                    addResult('✅ Simulated navbar update completed', 'success');
+                    
+                    // Check if navbar actually updated
+                    setTimeout(() => {
+                        const authButton = document.querySelector('.auth-button');
+                        if (authButton && authButton.innerHTML.includes('Test User')) {
+                            addResult('✅ Navbar successfully shows simulated user!', 'success');
+                        } else if (authButton && authButton.innerHTML.includes('toggleUserDropdown')) {
+                            addResult('✅ Navbar shows user dropdown (but maybe not the name)', 'success');
+                        } else {
+                            addResult('⚠️ Navbar didn\'t update with simulated user', 'warning');
+                        }
+                    }, 100);
+                } else {
+                    addResult('❌ updateNavbarForUser function not available', 'error');
+                }
+            } catch (error) {
+                addResult(`❌ Simulated update failed: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testLogin() {
+            const email = document.getElementById('testEmail').value;
+            const password = document.getElementById('testPassword').value;
+            
+            addResult(`🔐 Testing login with ${email}...`, 'info');
+            
+            try {
+                if (!window.auth || !window.auth.signIn) {
+                    addResult('❌ window.auth.signIn not available', 'error');
+                    return;
+                }
+                
+                const result = await window.auth.signIn(email, password);
+                
+                if (result.success) {
+                    addResult('✅ Login successful!', 'success');
+                    addResult(`📧 Logged in as: ${result.data.user.email}`, 'success');
+                    
+                    // Test if navbar updates automatically
+                    setTimeout(async () => {
+                        await testNavbarUpdate();
+                        await testCheckAuthState();
+                    }, 1000);
+                } else {
+                    addResult(`❌ Login failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                addResult(`❌ Login test failed: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testLogout() {
+            addResult('🚪 Testing logout...', 'info');
+            
+            try {
+                if (!window.auth || !window.auth.signOut) {
+                    addResult('❌ window.auth.signOut not available', 'error');
+                    return;
+                }
+                
+                const result = await window.auth.signOut();
+                
+                if (result.success) {
+                    addResult('✅ Logout successful!', 'success');
+                    
+                    // Test if navbar resets
+                    setTimeout(async () => {
+                        await testGetSession();
+                        await testNavbarElements();
+                    }, 1000);
+                } else {
+                    addResult(`❌ Logout failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                addResult(`❌ Logout test failed: ${error.message}`, 'error');
+            }
+        }
+        
+        // Auto-run basic tests on page load
+        window.addEventListener('load', function() {
+            addResult('🚀 Debug page loaded', 'info');
+            setTimeout(async () => {
+                await testSupabaseConnection();
+                await testGetSession();
+                await testNavbarElements();
+                await testCheckAuthState();
+            }, 1000);
+        });
+        
+        // Listen for auth state changes
+        window.addEventListener('load', function() {
+            if (window.supabaseClient) {
+                window.supabaseClient.auth.onAuthStateChange((event, session) => {
+                    addResult(`🔄 Auth state changed: ${event}`, 'info');
+                    if (session && session.user) {
+                        addResult(`👤 User: ${session.user.email}`, 'success');
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
