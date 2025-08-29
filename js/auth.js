@@ -430,19 +430,40 @@
     // Check Authentication State
     async function checkAuthState() {
         try {
-            const user = await window.auth.getCurrentUser();
+            // First try to get the current session
+            const { data: { session }, error } = await window.supabaseClient.auth.getSession();
             
-            if (user) {
-                // User is logged in
-                console.log('User is authenticated:', user);
+            if (error) {
+                console.error('Session retrieval error:', error);
+                return;
+            }
+            
+            if (session && session.user) {
+                // User has an active session
+                console.log('Active session found for user:', session.user.email);
                 
                 // Update navbar to show user profile
-                await updateNavbarForUser(user);
+                await updateNavbarForUser(session.user);
                 
                 // If on login/signup page and user is authenticated, redirect to dashboard
                 if (window.location.pathname.includes('login.html') || 
                     window.location.pathname.includes('signup.html')) {
                     window.location.href = 'index.html';
+                }
+            } else {
+                // No active session, try getCurrentUser as fallback
+                const user = await window.auth.getCurrentUser();
+                
+                if (user) {
+                    console.log('User found via getCurrentUser:', user.email);
+                    await updateNavbarForUser(user);
+                    
+                    if (window.location.pathname.includes('login.html') || 
+                        window.location.pathname.includes('signup.html')) {
+                        window.location.href = 'index.html';
+                    }
+                } else {
+                    console.log('No authenticated user found');
                 }
             }
         } catch (error) {
