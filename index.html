@@ -1004,6 +1004,14 @@
             // Add any additional initialization here
             console.log('Mailsfinder homepage loaded successfully!');
             
+            // Immediate force auth fix
+            setTimeout(async () => {
+                if (window.forceAuthFix) {
+                    console.log('Running immediate force auth fix...');
+                    await window.forceAuthFix();
+                }
+            }, 50);
+            
             // Aggressive authentication check with multiple retries
             let authCheckAttempts = 0;
             const maxAuthAttempts = 10;
@@ -1155,22 +1163,69 @@
                 console.error('Auth test error:', error);
             }
         };
+        
+        // Immediate authentication fix - force navbar update
+        window.forceAuthFix = async function() {
+            try {
+                // Wait for Supabase to be ready
+                if (!window.supabaseClient) {
+                    console.log('Waiting for Supabase...');
+                    return;
+                }
+                
+                // Get current session directly from Supabase
+                const { data: { session }, error } = await window.supabaseClient.auth.getSession();
+                
+                if (session && session.user) {
+                    console.log('Found active session, updating navbar for:', session.user.email);
+                    
+                    // Force immediate navbar update
+                    if (window.authFunctions && window.authFunctions.updateNavbarForUser) {
+                        await window.authFunctions.updateNavbarForUser(session.user);
+                    }
+                    
+                    // Store auth state
+                    localStorage.setItem('mailsfinder_auth_state', JSON.stringify({
+                        isAuthenticated: true,
+                        user: session.user,
+                        timestamp: Date.now()
+                    }));
+                } else {
+                    console.log('No active session found');
+                }
+            } catch (error) {
+                console.error('Force auth fix error:', error);
+            }
+        };
             
-            // Also add a window load event as backup
+            // Aggressive authentication fix on page load
             window.addEventListener('load', function() {
-                setTimeout(async () => {
-                    if (typeof window.auth !== 'undefined') {
-                        try {
-                            const user = await window.auth.getCurrentUser();
-                            if (user) {
-                                console.log('Window load backup check - user found:', user.email);
-                                await window.authFunctions.updateNavbarForUser(user);
-                            }
-                        } catch (error) {
-                            console.error('Window load backup check error:', error);
+                let attempts = 0;
+                const maxAttempts = 10;
+                
+                const tryAuthFix = async () => {
+                    attempts++;
+                    console.log(`Auth fix attempt ${attempts}/${maxAttempts}`);
+                    
+                    if (window.forceAuthFix) {
+                        await window.forceAuthFix();
+                        
+                        // Check if navbar was updated successfully
+                        const authButton = document.getElementById('authButton');
+                        if (authButton && authButton.innerHTML.includes('Dashboard')) {
+                            console.log('Navbar successfully updated!');
+                            return;
                         }
                     }
-                }, 500);
+                    
+                    // Retry if not successful and haven't reached max attempts
+                    if (attempts < maxAttempts) {
+                        setTimeout(tryAuthFix, 500);
+                    }
+                };
+                
+                // Start trying immediately and then with delays
+                setTimeout(tryAuthFix, 100);
             });
         });
     </script>

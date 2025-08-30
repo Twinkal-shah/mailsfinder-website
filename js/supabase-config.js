@@ -25,7 +25,7 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
                 
                 // Also store in domain-wide cookie for cross-subdomain access
                 setCookie(key, value, {
-                    domain: '.mailsfinders.com',
+                    domain: '.mailsfinder.com',
                     path: '/',
                     maxAge: 60 * 60 * 24 * 7, // 7 days
                     secure: true,
@@ -34,7 +34,7 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
             },
             removeItem: (key) => {
                 localStorage.removeItem(key);
-                deleteCookie(key, { domain: '.mailsfinders.com', path: '/' });
+                deleteCookie(key, { domain: '.mailsfinder.com', path: '/' });
             }
         }
     }
