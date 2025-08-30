@@ -99,8 +99,8 @@
                         <a href="email-verifier" class="text-text-gray hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors">Email Verifier</a>
                     </div>
                 </div>
-                <div class="hidden md:block">
-                    <a href="login" class="bg-primary hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors inline-block">
+                <div class="hidden md:block auth-button" id="authButton">
+                    <a href="#" onclick="redirectToDashboard()" class="bg-primary hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors inline-block">
                         Start Finding Emails
                     </a>
                 </div>
@@ -132,9 +132,11 @@
                 <a href="contact" class="text-primary block px-3 py-2 rounded-md text-base font-medium">Contact</a>
                 <a href="email-finder" class="text-text-gray hover:text-primary block px-3 py-2 rounded-md text-base font-medium">Email Finder</a>
                 <a href="email-verifier" class="text-text-gray hover:text-primary block px-3 py-2 rounded-md text-base font-medium">Email Verifier</a>
-                <a href="login" class="w-full text-left bg-primary hover:bg-blue-700 text-white px-3 py-2 rounded-md text-base font-medium transition-colors mt-2 block">
-                    Start Finding Emails
-                </a>
+                <div class="mobile-auth-button" id="mobileAuthButton">
+                    <a href="#" onclick="redirectToDashboard()" class="w-full text-left bg-primary hover:bg-blue-700 text-white px-3 py-2 rounded-md text-base font-medium transition-colors mt-2 block">
+                        Start Finding Emails
+                    </a>
+                </div>
                 <!-- Dark Mode Toggle for Mobile -->
                 <div class="flex items-center justify-between px-3 py-2">
                     <span class="text-text-gray">Dark Mode</span>
@@ -319,7 +321,7 @@
             <p class="text-blue-100 mb-8 max-w-2xl mx-auto">
                 Join thousands of professionals who trust Mailsfinder for their email prospecting needs.
             </p>
-            <button class="bg-white text-primary hover:bg-gray-100 px-8 py-3 rounded-lg font-bold text-lg transition-colors">
+            <button onclick="redirectToDashboard()" class="bg-white text-primary hover:bg-gray-100 px-8 py-3 rounded-lg font-bold text-lg transition-colors">
                 Start Finding Emails
             </button>
         </div>
@@ -372,5 +374,15 @@
     <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
     <script src="js/main.js"></script>
     <script src="js/animations.js"></script>
+    <script src="js/supabase-config.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+        // Initialize authentication state on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.checkAuthState) {
+                checkAuthState();
+            }
+        });
+    </script>
 </body>
 </html>

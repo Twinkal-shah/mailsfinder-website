@@ -305,8 +305,14 @@
         init() {
             document.querySelectorAll('a[href^="#"]').forEach(anchor => {
                 anchor.addEventListener('click', (e) => {
+                    const href = anchor.getAttribute('href');
+                    // Skip empty hash or just '#' to avoid querySelector errors
+                    if (!href || href === '#' || href.length <= 1) {
+                        return; // Let the default behavior or onclick handler take over
+                    }
+                    
                     e.preventDefault();
-                    const target = document.querySelector(anchor.getAttribute('href'));
+                    const target = document.querySelector(href);
                     if (target) {
                         this.scrollToElement(target);
                     }

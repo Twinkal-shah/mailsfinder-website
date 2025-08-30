@@ -101,7 +101,7 @@
                     </div>
                 </div>
                 <div class="hidden md:block auth-button" id="authButton">
-                    <a href="login" class="bg-primary hover:bg-primary-dark text-white px-6 py-2 rounded-lg font-medium transition-colors inline-block">
+                    <a href="#" onclick="redirectToDashboard()" class="bg-primary hover:bg-primary-dark text-white px-6 py-2 rounded-lg font-medium transition-colors inline-block">
                         Start Finding Emails
                     </a>
                 </div>
@@ -121,7 +121,7 @@
                 <a href="about" class="text-text-gray hover:text-primary block px-3 py-2 rounded-md text-base font-medium">About Us</a>
                 <a href="contact" class="text-text-gray hover:text-primary block px-3 py-2 rounded-md text-base font-medium">Contact Us</a>
                 <div class="mobile-auth-button" id="mobileAuthButton">
-                    <a href="login" class="w-full text-left bg-primary hover:bg-primary-dark text-white px-3 py-2 rounded-md text-base font-medium transition-colors mt-2 block">
+                    <a href="#" onclick="redirectToDashboard()" class="w-full text-left bg-primary hover:bg-primary-dark text-white px-3 py-2 rounded-md text-base font-medium transition-colors mt-2 block">
                         Start Finding Emails
                     </a>
                 </div>
@@ -146,7 +146,7 @@
                 
                 <!-- CTAs -->
                 <div class="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12 animate-slide-up">
-                    <a href="login" class="bg-primary hover:bg-primary-dark text-white px-8 py-4 rounded-lg text-lg font-semibold transition-all transform hover:scale-105 min-h-[44px] w-full sm:w-auto inline-block text-center">
+                    <a href="#" onclick="redirectToDashboard()" class="bg-primary hover:bg-primary-dark text-white px-8 py-4 rounded-lg text-lg font-semibold transition-all transform hover:scale-105 min-h-[44px] w-full sm:w-auto inline-block text-center">
                         <i class="fas fa-rocket mr-2"></i>
                         Start Finding Emails Now
                     </a>
@@ -954,8 +954,14 @@
         // Smooth scrolling for navigation links
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function (e) {
+                const href = this.getAttribute('href');
+                // Skip empty hash or just '#' to avoid querySelector errors
+                if (!href || href === '#' || href.length <= 1) {
+                    return; // Let the default behavior or onclick handler take over
+                }
+                
                 e.preventDefault();
-                const target = document.querySelector(this.getAttribute('href'));
+                const target = document.querySelector(href);
                 if (target) {
                     const headerOffset = 80;
                     const elementPosition = target.getBoundingClientRect().top;
@@ -1111,7 +1117,44 @@
             }
             
             // Start auth initialization
-            setTimeout(initAuth, 100);
+        setTimeout(initAuth, 100);
+        
+        // Debug function for testing
+        window.testRedirect = function() {
+            console.log('Testing redirectToDashboard function...');
+            if (typeof window.redirectToDashboard === 'function') {
+                console.log('redirectToDashboard function is available');
+                window.redirectToDashboard();
+            } else {
+                console.error('redirectToDashboard function is not available');
+            }
+        };
+        
+        // Debug function for testing auth state
+        window.testAuth = async function() {
+            console.log('Testing authentication state...');
+            try {
+                if (window.supabaseClient) {
+                    const { data: { session }, error } = await window.supabaseClient.auth.getSession();
+                    console.log('Current session:', session);
+                    console.log('Session error:', error);
+                    
+                    if (session && session.user) {
+                        console.log('User found:', session.user);
+                        if (window.authFunctions && window.authFunctions.updateNavbarForUser) {
+                            console.log('Manually updating navbar...');
+                            await window.authFunctions.updateNavbarForUser(session.user);
+                        }
+                    } else {
+                        console.log('No authenticated user found');
+                    }
+                } else {
+                    console.error('Supabase client not available');
+                }
+            } catch (error) {
+                console.error('Auth test error:', error);
+            }
+        };
             
             // Also add a window load event as backup
             window.addEventListener('load', function() {
@@ -1134,7 +1177,8 @@
     
     <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/supabase-config.js"></script>
-    <script src="js/auth.js"></script>
+    <script src="js/supabase-config.js?v=2"></script>
+    <script src="js/auth.js?v=2"></script>
+    <script src="js/main.js?v=2"></script>
 </body>
 </html>

@@ -63,8 +63,8 @@
                         <a href="contact" class="text-text-gray hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors">Contact Us</a>
                     </div>
                 </div>
-                <div class="hidden md:block">
-                    <a href="login" class="bg-primary hover:bg-primary-dark text-white px-6 py-2 rounded-lg font-medium transition-colors inline-block">
+                <div class="hidden md:block auth-button" id="authButton">
+                    <a href="#" onclick="redirectToDashboard()" class="bg-primary hover:bg-primary-dark text-white px-6 py-2 rounded-lg font-medium transition-colors inline-block">
                         Start Finding Emails
                     </a>
                 </div>
@@ -83,9 +83,11 @@
                 <a href="index.html#pricing" class="text-text-gray hover:text-primary block px-3 py-2 rounded-md text-base font-medium">Pricing</a>
                 <a href="about" class="text-primary block px-3 py-2 rounded-md text-base font-medium">About Us</a>
                 <a href="contact" class="text-text-gray hover:text-primary block px-3 py-2 rounded-md text-base font-medium">Contact Us</a>
-                <a href="login" class="w-full text-left bg-primary hover:bg-primary-dark text-white px-3 py-2 rounded-md text-base font-medium transition-colors mt-2 block">
-                    Start Finding Emails
-                </a>
+                <div class="mobile-auth-button" id="mobileAuthButton">
+                    <a href="#" onclick="redirectToDashboard()" class="w-full text-left bg-primary hover:bg-primary-dark text-white px-3 py-2 rounded-md text-base font-medium transition-colors mt-2 block">
+                        Start Finding Emails
+                    </a>
+                </div>
             </div>
         </div>
     </nav>
@@ -250,7 +252,7 @@
             <p class="text-blue-100 mb-8 max-w-2xl mx-auto">
                 Join thousands of professionals who trust Mailsfinder for their email prospecting needs.
             </p>
-            <a href="login" class="bg-white text-primary hover:bg-gray-100 px-8 py-3 rounded-lg font-bold text-lg transition-colors inline-block">
+            <a href="#" onclick="redirectToDashboard()" class="bg-white text-primary hover:bg-gray-100 px-8 py-3 rounded-lg font-bold text-lg transition-colors inline-block">
                 Get Started Today
             </a>
         </div>
@@ -324,6 +326,16 @@
             const mobileMenu = document.getElementById('mobile-menu');
             mobileMenu.classList.toggle('hidden');
         }
+    </script>
+    <script src="js/supabase-config.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+        // Initialize authentication state on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.checkAuthState) {
+                checkAuthState();
+            }
+        });
     </script>
 </body>
 </html>

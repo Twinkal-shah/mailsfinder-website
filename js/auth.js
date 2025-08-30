@@ -430,23 +430,213 @@
     // Check Authentication State
     async function checkAuthState() {
         try {
-            const user = await window.auth.getCurrentUser();
+            console.log('Starting comprehensive authentication state check...');
             
-            if (user) {
-                // User is logged in
-                console.log('User is authenticated:', user);
+            // First, check for session from multiple sources
+            let session = null;
+            let sessionSource = 'none';
+            
+            // Try to get session from Supabase
+            try {
+                const { data: { session: supabaseSession }, error: sessionError } = await window.supabaseClient.auth.getSession();
                 
-                // Update navbar to show user profile
-                await updateNavbarForUser(user);
-                
-                // If on login/signup page and user is authenticated, redirect to dashboard
-                if (window.location.pathname.includes('login.html') || 
-                    window.location.pathname.includes('signup.html')) {
-                    window.location.href = 'index.html';
+                if (sessionError) {
+                    console.warn('Supabase session retrieval error:', sessionError);
+                } else if (supabaseSession) {
+                    session = supabaseSession;
+                    sessionSource = 'supabase';
+                    console.log('Session found from Supabase');
+                }
+            } catch (supabaseError) {
+                console.warn('Error accessing Supabase session:', supabaseError);
+            }
+            
+            // If no Supabase session, try backup storage
+            if (!session) {
+                try {
+                    const backupSession = localStorage.getItem('mailsfinder_session_backup');
+                    if (backupSession) {
+                        const parsedSession = JSON.parse(backupSession);
+                        const currentTime = Math.floor(Date.now() / 1000);
+                        
+                        // Check if backup session is still valid
+                        if (parsedSession.expires_at && parsedSession.expires_at > currentTime) {
+                            console.log('Valid backup session found, attempting to restore...');
+                            
+                            // Try to restore session to Supabase
+                            const { data, error } = await window.supabaseClient.auth.setSession({
+                                access_token: parsedSession.access_token,
+                                refresh_token: parsedSession.refresh_token
+                            });
+                            
+                            if (!error && data.session) {
+                                session = data.session;
+                                sessionSource = 'backup_restored';
+                                console.log('Session successfully restored from backup');
+                            } else {
+                                console.warn('Failed to restore backup session:', error);
+                                localStorage.removeItem('mailsfinder_session_backup');
+                            }
+                        } else {
+                            console.log('Backup session expired, removing...');
+                            localStorage.removeItem('mailsfinder_session_backup');
+                        }
+                    }
+                } catch (backupError) {
+                    console.warn('Error processing backup session:', backupError);
+                    localStorage.removeItem('mailsfinder_session_backup');
                 }
             }
+            
+            // Validate session if found
+            if (session && session.access_token) {
+                const currentTime = Math.floor(Date.now() / 1000);
+                
+                // Check if session is expired
+                if (session.expires_at && session.expires_at <= currentTime) {
+                    console.log('Session expired, attempting refresh...');
+                    
+                    try {
+                        const { data: refreshData, error: refreshError } = await window.supabaseClient.auth.refreshSession();
+                        
+                        if (refreshError || !refreshData.session) {
+                            console.error('Session refresh failed:', refreshError);
+                            throw new Error('Session expired and refresh failed');
+                        }
+                        
+                        session = refreshData.session;
+                        sessionSource = 'refreshed';
+                        console.log('Session refreshed successfully');
+                        
+                        // Update backup storage with refreshed session
+                        try {
+                            localStorage.setItem('mailsfinder_session_backup', JSON.stringify({
+                                access_token: session.access_token,
+                                refresh_token: session.refresh_token,
+                                user_id: session.user.id,
+                                expires_at: session.expires_at,
+                                timestamp: Date.now()
+                            }));
+                        } catch (storageError) {
+                            console.warn('Could not update session backup:', storageError);
+                        }
+                    } catch (refreshError) {
+                        console.error('Critical session refresh error:', refreshError);
+                        session = null;
+                        sessionSource = 'none';
+                        
+                        // Clean up invalid session data
+                        try {
+                            localStorage.removeItem('mailsfinder_session_backup');
+                            await window.supabaseClient.auth.signOut();
+                        } catch (cleanupError) {
+                            console.warn('Error during session cleanup:', cleanupError);
+                        }
+                    }
+                }
+            }
+            
+            // Process authenticated state
+            if (session && session.user) {
+                console.log(`User is authenticated (source: ${sessionSource}):`, session.user);
+                
+                // Get comprehensive user data
+                const userData = await window.auth.getCurrentUserWithData();
+                
+                // Try to get cached user data for faster navbar update
+                let cachedUserData = userData;
+                if (!cachedUserData) {
+                    try {
+                        const cached = localStorage.getItem('mailsfinder_user_cache');
+                        if (cached) {
+                            const parsedCache = JSON.parse(cached);
+                            // Use cache if it's less than 5 minutes old
+                            if (Date.now() - parsedCache.timestamp < 300000) {
+                                cachedUserData = parsedCache;
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('[Auth] Failed to parse cached user data:', e);
+                    }
+                }
+                
+                // Update navbar to show user profile
+                await updateNavbarForUser(session.user, cachedUserData);
+                
+                // Handle page-specific redirects for authenticated users
+                const currentPath = window.location.pathname;
+                if (currentPath.includes('login.html') || currentPath.includes('signup.html')) {
+                    console.log('Authenticated user on auth page, redirecting to home...');
+                    window.location.href = 'index.html';
+                }
+                
+                // Store successful authentication state
+                try {
+                    localStorage.setItem('mailsfinder_auth_state', JSON.stringify({
+                        authenticated: true,
+                        user_id: session.user.id,
+                        timestamp: Date.now(),
+                        source: sessionSource
+                    }));
+                } catch (storageError) {
+                    console.warn('Could not store auth state:', storageError);
+                }
+                
+            } else {
+                console.log('No valid authentication found');
+                
+                // Clear authentication state
+                try {
+                    localStorage.removeItem('mailsfinder_auth_state');
+                    localStorage.removeItem('mailsfinder_session_backup');
+                } catch (storageError) {
+                    console.warn('Error clearing auth state:', storageError);
+                }
+                
+                // Reset navbar to show login state
+                resetNavbarToLoginState();
+            }
+            
         } catch (error) {
-            console.error('Auth state check error:', error);
+            console.error('Critical error during auth state check:', error);
+            
+            // Comprehensive error cleanup
+            try {
+                localStorage.removeItem('mailsfinder_auth_state');
+                localStorage.removeItem('mailsfinder_session_backup');
+                await window.supabaseClient.auth.signOut();
+            } catch (cleanupError) {
+                console.warn('Error during error cleanup:', cleanupError);
+            }
+            
+            // Reset navbar to safe state
+            resetNavbarToLoginState();
+        }
+    }
+    
+    // Helper function to reset navbar to login state
+    function resetNavbarToLoginState() {
+        try {
+            const authButton = document.getElementById('authButton');
+            const mobileAuthButton = document.getElementById('mobileAuthButton');
+            
+            if (authButton) {
+                authButton.innerHTML = `
+                    <a href="#" onclick="redirectToDashboard()" class="bg-primary hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 transform hover:scale-105">
+                        Start Finding Emails
+                    </a>
+                `;
+            }
+            
+            if (mobileAuthButton) {
+                mobileAuthButton.innerHTML = `
+                    <a href="#" onclick="redirectToDashboard()" class="w-full text-left bg-primary hover:bg-blue-700 text-white px-3 py-2 rounded-md text-base font-medium transition-colors mt-2 block">
+                        Start Finding Emails
+                    </a>
+                `;
+            }
+        } catch (resetError) {
+            console.warn('Error resetting navbar to login state:', resetError);
         }
     }
 
@@ -457,21 +647,78 @@
             
             if (event === 'SIGNED_IN') {
                 console.log('User signed in:', session.user);
+                
+                // Try to get cached user data for faster navbar update
+                let cachedUserData = null;
+                try {
+                    const cached = localStorage.getItem('mailsfinder_user_cache');
+                    if (cached) {
+                        const parsedCache = JSON.parse(cached);
+                        // Use cache if it's less than 5 minutes old
+                        if (Date.now() - parsedCache.timestamp < 300000) {
+                            cachedUserData = parsedCache;
+                        }
+                    }
+                } catch (e) {
+                    console.warn('[Auth] Failed to parse cached user data:', e);
+                }
+                
                 // Update navbar to show user profile
-                await updateNavbarForUser(session.user);
+                await updateNavbarForUser(session.user, cachedUserData);
             } else if (event === 'INITIAL_SESSION') {
                 // Supabase v2 emits INITIAL_SESSION on load when a session already exists
                 if (session?.user) {
                     console.log('Initial session detected, updating navbar for existing user');
-                    await updateNavbarForUser(session.user);
+                    
+                    // Try to get cached user data for faster navbar update
+                    let cachedUserData = null;
+                    try {
+                        const cached = localStorage.getItem('mailsfinder_user_cache');
+                        if (cached) {
+                            const parsedCache = JSON.parse(cached);
+                            // Use cache if it's less than 5 minutes old
+                            if (Date.now() - parsedCache.timestamp < 300000) {
+                                cachedUserData = parsedCache;
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('[Auth] Failed to parse cached user data:', e);
+                    }
+                    
+                    await updateNavbarForUser(session.user, cachedUserData);
                 }
             } else if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
                 if (session?.user) {
                     console.log('Session token refreshed/user updated, ensuring navbar is up to date');
-                    await updateNavbarForUser(session.user);
+                    
+                    // Try to get cached user data for faster navbar update
+                    let cachedUserData = null;
+                    try {
+                        const cached = localStorage.getItem('mailsfinder_user_cache');
+                        if (cached) {
+                            const parsedCache = JSON.parse(cached);
+                            // Use cache if it's less than 5 minutes old
+                            if (Date.now() - parsedCache.timestamp < 300000) {
+                                cachedUserData = parsedCache;
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('[Auth] Failed to parse cached user data:', e);
+                    }
+                    
+                    await updateNavbarForUser(session.user, cachedUserData);
                 }
             } else if (event === 'SIGNED_OUT') {
                 console.log('User signed out');
+                
+                // Clear cached user data on sign out
+                try {
+                    localStorage.removeItem('mailsfinder_user_cache');
+                    localStorage.removeItem('forceAuthUpdate');
+                } catch (e) {
+                    console.warn('[Auth] Failed to clear cached user data:', e);
+                }
+                
                 // Reset navbar to show login button
                 window.location.reload();
                 // Redirect to login if on protected pages
@@ -509,7 +756,7 @@
     });
 
     // Update navbar for authenticated user
-    async function updateNavbarForUser(user, _retryCount = 0) {
+    async function updateNavbarForUser(user, userData = null, _retryCount = 0) {
         // Prefer IDs (unique) then fallback to class selectors
         let authButton = document.getElementById('authButton') || document.querySelector('.auth-button');
         let mobileAuthButton = document.getElementById('mobileAuthButton') || document.querySelector('.mobile-auth-button');
@@ -518,7 +765,7 @@
         if ((!authButton && !mobileAuthButton) && _retryCount < 5) {
             console.log(`[Navbar] Targets not ready (retry ${_retryCount + 1}/5) – delaying updateNavbarForUser`);
             await new Promise(r => setTimeout(r, 200));
-            return updateNavbarForUser(user, _retryCount + 1);
+            return updateNavbarForUser(user, userData, _retryCount + 1);
         }
 
         if (!user) {
@@ -527,33 +774,76 @@
         }
 
         try {
+            console.log('[Navbar] Updating navbar for user:', user.email);
+            
             // Compute default display values
             let userName = user.email?.split('@')[0] || 'User';
             const userEmail = user.email || 'User';
+            let userCredits = { find: 0, verify: 0 };
+            let userPlan = 'Free';
 
-            // Race profile fetch with a timeout so UI doesn’t stall
-            const withTimeout = (p, ms) => Promise.race([
-                p,
-                new Promise(resolve => setTimeout(() => resolve(null), ms))
-            ]);
+            // Use provided userData if available, otherwise fetch it
+            let userWithData = userData;
+            if (!userWithData) {
+                // Race profile fetch with a timeout so UI doesn't stall
+                const withTimeout = (p, ms) => Promise.race([
+                    p,
+                    new Promise(resolve => setTimeout(() => resolve(null), ms))
+                ]);
 
-            const userWithData = await withTimeout(window.auth.getCurrentUserWithData(), 1500);
-
-            if (userWithData?.profile?.full_name) {
-                userName = userWithData.profile.full_name;
-            } else if (user.user_metadata?.full_name) {
-                userName = user.user_metadata.full_name;
+                try {
+                    userWithData = await withTimeout(window.auth.getCurrentUserWithData(), 2000);
+                    console.log('[Navbar] Fetched user data:', userWithData);
+                } catch (fetchError) {
+                    console.warn('[Navbar] Failed to fetch user data:', fetchError);
+                }
+            } else {
+                console.log('[Navbar] Using provided user data:', userWithData);
             }
 
-            // Cache for fast restore on next visits (read by index.html's forceAuthUpdate logic)
+            // Extract user information from multiple sources
+            if (userWithData?.profile?.full_name) {
+                userName = userWithData.profile.full_name;
+            } else if (userWithData?.name) {
+                userName = userWithData.name;
+            } else if (user.user_metadata?.full_name) {
+                userName = user.user_metadata.full_name;
+            } else if (user.user_metadata?.name) {
+                userName = user.user_metadata.name;
+            }
+            
+            // Extract credits information
+            if (userWithData?.credits_find !== undefined) {
+                userCredits.find = userWithData.credits_find;
+            }
+            if (userWithData?.credits_verify !== undefined) {
+                userCredits.verify = userWithData.credits_verify;
+            }
+            
+            // Extract plan information
+            if (userWithData?.plan) {
+                userPlan = userWithData.plan;
+            }
+
+            // Cache for fast restore on next visits and cross-domain access
             try {
                 const cachePayload = {
-                    user: { id: user.id, email: user.email },
-                    profile: { full_name: userWithData?.profile?.full_name || user.user_metadata?.full_name || userName },
+                    user: { 
+                        id: user.id, 
+                        email: user.email,
+                        user_metadata: user.user_metadata 
+                    },
+                    profile: { 
+                        full_name: userName,
+                        plan: userPlan,
+                        credits_find: userCredits.find,
+                        credits_verify: userCredits.verify
+                    },
                     timestamp: Date.now()
                 };
                 localStorage.setItem('forceAuthUpdate', JSON.stringify(cachePayload));
-                console.log('[Navbar] Cached user data for fast restore');
+                localStorage.setItem('mailsfinder_user_cache', JSON.stringify(cachePayload));
+                console.log('[Navbar] Cached comprehensive user data for fast restore');
             } catch (e) {
                 console.warn('[Navbar] Failed to cache user data:', e);
             }
@@ -572,6 +862,7 @@
                         <div class="px-4 py-2 text-sm text-text-gray border-b">
                             <div class="font-medium">${userName}</div>
                             <div class="text-xs text-text-gray">${userEmail}</div>
+                            <div class="text-xs text-blue-600 mt-1">${userPlan} Plan</div>
                         </div>
                         <a href="#" onclick="redirectToDashboard()" class="block px-4 py-2 text-sm text-text-gray hover:bg-gray-100">Dashboard</a>
                         <button onclick="handleLogout()" class="block w-full text-left px-4 py-2 text-sm text-text-gray hover:bg-gray-100">Sign Out</button>
@@ -591,6 +882,7 @@
                         <div>
                             <div class="text-sm font-medium text-text-dark">${mobileUserName}</div>
                             <div class="text-xs text-text-gray">${userEmail}</div>
+                            <div class="text-xs text-blue-600">${userPlan} Plan</div>
                         </div>
                     </div>
                     <a href="#" onclick="redirectToDashboard()" class="block w-full text-left bg-primary hover:bg-primary-dark text-white px-3 py-2 rounded-md text-sm font-medium transition-colors mb-2">Dashboard</a>
@@ -635,19 +927,133 @@
     // Redirect to dashboard
     async function redirectToDashboard() {
         try {
-            const { data: { session } } = await window.supabaseClient.auth.getSession();
+            console.log('Starting dashboard redirect with authentication check...');
             
-            if (session && session.access_token) {
-                // Redirect directly to dashboard
-                window.location.href = 'https://app.mailsfinder.com';
+            // First, try to get the current session
+            const { data: { session }, error: sessionError } = await window.supabaseClient.auth.getSession();
+            
+            if (sessionError) {
+                console.error('Session retrieval error:', sessionError);
+                throw sessionError;
+            }
+            
+            // Validate session and check if it's still valid
+            if (session && session.access_token && session.expires_at) {
+                const currentTime = Math.floor(Date.now() / 1000);
+                const expiresAt = session.expires_at;
+                
+                // Check if session is expired
+                if (expiresAt <= currentTime) {
+                    console.log('Session expired, attempting refresh...');
+                    
+                    // Try to refresh the session
+                    const { data: refreshData, error: refreshError } = await window.supabaseClient.auth.refreshSession();
+                    
+                    if (refreshError || !refreshData.session) {
+                        console.error('Session refresh failed:', refreshError);
+                        throw new Error('Session expired and refresh failed');
+                    }
+                    
+                    // Use the refreshed session
+                    session = refreshData.session;
+                    console.log('Session refreshed successfully');
+                }
+                
+                // Get comprehensive user data for dashboard
+                let userData = null;
+                try {
+                    userData = await window.auth.getCurrentUserWithData();
+                    console.log('[Dashboard] Retrieved user data for redirect:', userData);
+                } catch (e) {
+                    console.warn('[Dashboard] Failed to get user data:', e);
+                }
+                
+                // Prepare secure URL parameters with session tokens
+                const params = new URLSearchParams({
+                    access_token: session.access_token,
+                    refresh_token: session.refresh_token,
+                    user_id: session.user.id,
+                    user_email: session.user.email,
+                    expires_at: session.expires_at,
+                    timestamp: Date.now() // Add timestamp for cache busting
+                });
+                
+                // Add comprehensive user data if available
+                if (userData) {
+                    if (userData.name) params.append('user_name', userData.name);
+                    if (userData.company) params.append('user_company', userData.company);
+                    if (userData.plan) params.append('user_plan', userData.plan);
+                    if (userData.credits_find !== undefined) params.append('credits_find', userData.credits_find);
+                    if (userData.credits_verify !== undefined) params.append('credits_verify', userData.credits_verify);
+                }
+                
+                // Store session data in localStorage for backup
+                try {
+                    const sessionBackup = {
+                        access_token: session.access_token,
+                        refresh_token: session.refresh_token,
+                        user_id: session.user.id,
+                        expires_at: session.expires_at,
+                        timestamp: Date.now()
+                    };
+                    
+                    // Include user data if available
+                    if (userData) {
+                        sessionBackup.userData = userData;
+                    }
+                    
+                    localStorage.setItem('mailsfinder_session_backup', JSON.stringify(sessionBackup));
+                    console.log('[Dashboard] Session backup stored with user data');
+                } catch (e) {
+                    console.warn('[Dashboard] Failed to store session backup:', e);
+                }
+                
+                // Update navbar before redirect
+                await updateNavbarForUser(session.user, userData);
+                
+                // Redirect to dashboard with comprehensive auth data
+                const dashboardUrl = `https://app.mailsfinder.com?${params.toString()}`;
+                console.log('Redirecting to dashboard with validated auth tokens');
+                window.location.href = dashboardUrl;
+                
             } else {
-                // If no session, redirect to login
+                // No valid session found
+                console.log('No valid session found, redirecting to login');
+                
+                // Clear any stale session data
+                try {
+                    localStorage.removeItem('mailsfinder_session_backup');
+                    await window.supabaseClient.auth.signOut();
+                } catch (cleanupError) {
+                    console.warn('Error during session cleanup:', cleanupError);
+                }
+                
                 window.location.href = 'login.html';
             }
+            
         } catch (error) {
-            console.error('Error getting session for dashboard redirect:', error);
-            // Fallback: redirect to login
-            window.location.href = 'login.html';
+            console.error('Critical error during dashboard redirect:', error);
+            
+            // Enhanced error handling with user feedback
+            const errorMessage = error.message || 'Authentication error occurred';
+            
+            // Try to show user-friendly error if possible
+            if (typeof showError === 'function') {
+                showError(`Authentication failed: ${errorMessage}. Please try logging in again.`);
+            }
+            
+            // Clear potentially corrupted session data
+            try {
+                localStorage.removeItem('mailsfinder_session_backup');
+                await window.supabaseClient.auth.signOut();
+            } catch (cleanupError) {
+                console.warn('Error during error cleanup:', cleanupError);
+            }
+            
+            // Fallback: redirect to login with error indication
+            setTimeout(() => {
+                window.location.href = 'login.html?error=auth_failed';
+            }, 2000); // Give time for error message to be seen
         }
     }
 

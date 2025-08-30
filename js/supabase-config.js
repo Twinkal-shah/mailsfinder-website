@@ -2,15 +2,73 @@
 const SUPABASE_URL = 'https://wbcfsffssphgvpnbrvve.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndiY2ZzZmZzc3BoZ3ZwbmJydnZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUxNzM3NTQsImV4cCI6MjA3MDc0OTc1NH0.3GV4dQm0Aqm8kbNzPJYOCFLnvhyNqxCJCtwfmUAw29Y';
 
-// Initialize Supabase client
+// Initialize Supabase client with cross-subdomain session persistence
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: true,
-        flowType: 'pkce'
+        flowType: 'pkce',
+        storage: {
+            getItem: (key) => {
+                // Use localStorage but with domain-wide cookie fallback
+                const localValue = localStorage.getItem(key);
+                if (localValue) return localValue;
+                
+                // Fallback to cookie for cross-subdomain sharing
+                const cookieValue = getCookie(key);
+                return cookieValue;
+            },
+            setItem: (key, value) => {
+                // Store in localStorage
+                localStorage.setItem(key, value);
+                
+                // Also store in domain-wide cookie for cross-subdomain access
+                setCookie(key, value, {
+                    domain: '.mailsfinders.com',
+                    path: '/',
+                    maxAge: 60 * 60 * 24 * 7, // 7 days
+                    secure: true,
+                    sameSite: 'Lax'
+                });
+            },
+            removeItem: (key) => {
+                localStorage.removeItem(key);
+                deleteCookie(key, { domain: '.mailsfinders.com', path: '/' });
+            }
+        }
     }
 });
+
+// Cookie utility functions for cross-subdomain session persistence
+function setCookie(name, value, options = {}) {
+    let cookieString = `${encodeURIComponent(name)}=${encodeURIComponent(value)}`;
+    
+    if (options.domain) cookieString += `; Domain=${options.domain}`;
+    if (options.path) cookieString += `; Path=${options.path}`;
+    if (options.maxAge) cookieString += `; Max-Age=${options.maxAge}`;
+    if (options.secure) cookieString += '; Secure';
+    if (options.sameSite) cookieString += `; SameSite=${options.sameSite}`;
+    
+    document.cookie = cookieString;
+}
+
+function getCookie(name) {
+    const nameEQ = encodeURIComponent(name) + '=';
+    const cookies = document.cookie.split(';');
+    
+    for (let cookie of cookies) {
+        cookie = cookie.trim();
+        if (cookie.indexOf(nameEQ) === 0) {
+            return decodeURIComponent(cookie.substring(nameEQ.length));
+        }
+    }
+    return null;
+}
+
+function deleteCookie(name, options = {}) {
+    setCookie(name, '', { ...options, maxAge: -1 });
+}
 
 // User management functions for custom profiles table
 const userManager = {
