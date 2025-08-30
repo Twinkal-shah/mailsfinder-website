@@ -100,10 +100,29 @@
                         <a href="contact" class="text-text-gray hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors">Contact Us</a>
                     </div>
                 </div>
-                <div class="hidden md:block auth-button" id="authButton">
-                    <a href="#" onclick="redirectToDashboard()" class="bg-primary hover:bg-primary-dark text-white px-6 py-2 rounded-lg font-medium transition-colors inline-block">
-                        Start Finding Emails
-                    </a>
+                <div class="hidden md:block" id="authButton">
+                    <!-- Loading State -->
+                    <div id="navbar-loading" class="flex items-center space-x-2">
+                        <div class="animate-pulse bg-gray-300 h-8 w-32 rounded"></div>
+                    </div>
+                    
+                    <!-- CTA Button (shown when logged out) -->
+                    <div id="cta-button" class="auth-button" style="display: none;">
+                        <a href="#" onclick="redirectToDashboard()" class="bg-primary hover:bg-primary-dark text-white px-6 py-2 rounded-lg font-medium transition-colors inline-block">
+                            Start Finding Emails
+                        </a>
+                    </div>
+                    
+                    <!-- Logged-in User Menu (shown when logged in) -->
+                    <div id="user-menu" class="flex items-center space-x-4" style="display: none;">
+                        <span id="welcome-text" class="text-gray-700 font-medium">Welcome, User</span>
+                        <a href="https://app.mailsfinder.com/dashboard" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors">
+                            Dashboard
+                        </a>
+                        <button id="signout-btn" class="bg-red-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-700 transition-colors">
+                            Sign Out
+                        </button>
+                    </div>
                 </div>
                 <!-- Mobile menu button -->
                 <div class="md:hidden">
@@ -120,10 +139,29 @@
                 <a href="#pricing" class="text-text-gray hover:text-primary block px-3 py-2 rounded-md text-base font-medium">Pricing</a>
                 <a href="about" class="text-text-gray hover:text-primary block px-3 py-2 rounded-md text-base font-medium">About Us</a>
                 <a href="contact" class="text-text-gray hover:text-primary block px-3 py-2 rounded-md text-base font-medium">Contact Us</a>
-                <div class="mobile-auth-button" id="mobileAuthButton">
-                    <a href="#" onclick="redirectToDashboard()" class="w-full text-left bg-primary hover:bg-primary-dark text-white px-3 py-2 rounded-md text-base font-medium transition-colors mt-2 block">
-                        Start Finding Emails
-                    </a>
+                <div id="mobileAuthButton">
+                    <!-- Mobile Loading State -->
+                    <div id="mobile-navbar-loading" class="mt-2">
+                        <div class="animate-pulse bg-gray-300 h-8 w-full rounded"></div>
+                    </div>
+                    
+                    <!-- Mobile CTA Button (shown when logged out) -->
+                    <div id="mobile-cta-button" class="mobile-auth-button" style="display: none;">
+                        <a href="#" onclick="redirectToDashboard()" class="w-full text-left bg-primary hover:bg-primary-dark text-white px-3 py-2 rounded-md text-base font-medium transition-colors mt-2 block">
+                            Start Finding Emails
+                        </a>
+                    </div>
+                    
+                    <!-- Mobile Logged-in User Menu (shown when logged in) -->
+                    <div id="mobile-user-menu" class="space-y-2 mt-2" style="display: none;">
+                        <div id="mobile-welcome-text" class="text-gray-700 font-medium px-3 py-2">Welcome, User</div>
+                        <a href="https://app.mailsfinder.com/dashboard" class="w-full text-left bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md text-base font-medium transition-colors block">
+                            Dashboard
+                        </a>
+                        <button id="mobile-signout-btn" class="w-full text-left bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md text-base font-medium transition-colors block">
+                            Sign Out
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1004,14 +1042,6 @@
             // Add any additional initialization here
             console.log('Mailsfinder homepage loaded successfully!');
             
-            // Immediate force auth fix
-            setTimeout(async () => {
-                if (window.forceAuthFix) {
-                    console.log('Running immediate force auth fix...');
-                    await window.forceAuthFix();
-                }
-            }, 50);
-            
             // Aggressive authentication check with multiple retries
             let authCheckAttempts = 0;
             const maxAuthAttempts = 10;
@@ -1163,69 +1193,22 @@
                 console.error('Auth test error:', error);
             }
         };
-        
-        // Immediate authentication fix - force navbar update
-        window.forceAuthFix = async function() {
-            try {
-                // Wait for Supabase to be ready
-                if (!window.supabaseClient) {
-                    console.log('Waiting for Supabase...');
-                    return;
-                }
-                
-                // Get current session directly from Supabase
-                const { data: { session }, error } = await window.supabaseClient.auth.getSession();
-                
-                if (session && session.user) {
-                    console.log('Found active session, updating navbar for:', session.user.email);
-                    
-                    // Force immediate navbar update
-                    if (window.authFunctions && window.authFunctions.updateNavbarForUser) {
-                        await window.authFunctions.updateNavbarForUser(session.user);
-                    }
-                    
-                    // Store auth state
-                    localStorage.setItem('mailsfinder_auth_state', JSON.stringify({
-                        isAuthenticated: true,
-                        user: session.user,
-                        timestamp: Date.now()
-                    }));
-                } else {
-                    console.log('No active session found');
-                }
-            } catch (error) {
-                console.error('Force auth fix error:', error);
-            }
-        };
             
-            // Aggressive authentication fix on page load
+            // Also add a window load event as backup
             window.addEventListener('load', function() {
-                let attempts = 0;
-                const maxAttempts = 10;
-                
-                const tryAuthFix = async () => {
-                    attempts++;
-                    console.log(`Auth fix attempt ${attempts}/${maxAttempts}`);
-                    
-                    if (window.forceAuthFix) {
-                        await window.forceAuthFix();
-                        
-                        // Check if navbar was updated successfully
-                        const authButton = document.getElementById('authButton');
-                        if (authButton && authButton.innerHTML.includes('Dashboard')) {
-                            console.log('Navbar successfully updated!');
-                            return;
+                setTimeout(async () => {
+                    if (typeof window.auth !== 'undefined') {
+                        try {
+                            const user = await window.auth.getCurrentUser();
+                            if (user) {
+                                console.log('Window load backup check - user found:', user.email);
+                                await window.authFunctions.updateNavbarForUser(user);
+                            }
+                        } catch (error) {
+                            console.error('Window load backup check error:', error);
                         }
                     }
-                    
-                    // Retry if not successful and haven't reached max attempts
-                    if (attempts < maxAttempts) {
-                        setTimeout(tryAuthFix, 500);
-                    }
-                };
-                
-                // Start trying immediately and then with delays
-                setTimeout(tryAuthFix, 100);
+                }, 500);
             });
         });
     </script>

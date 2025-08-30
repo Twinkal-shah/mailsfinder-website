@@ -11,30 +11,60 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         flowType: 'pkce',
         storage: {
             getItem: (key) => {
-                // Use localStorage but with domain-wide cookie fallback
-                const localValue = localStorage.getItem(key);
-                if (localValue) return localValue;
-                
-                // Fallback to cookie for cross-subdomain sharing
+                // Primary: try to get from cookie for cross-subdomain compatibility
                 const cookieValue = getCookie(key);
-                return cookieValue;
+                if (cookieValue) {
+                    try {
+                        // Validate that it's proper JSON
+                        JSON.parse(cookieValue);
+                        return cookieValue;
+                    } catch (e) {
+                        // Invalid JSON in cookie, remove it
+                        deleteCookie(key, { domain: '.mailsfinder.com', path: '/' });
+                    }
+                }
+                
+                // Fallback: try localStorage
+                const localValue = localStorage.getItem(key);
+                if (localValue) {
+                    // Migrate from localStorage to cookie for cross-subdomain access
+                    setCookie(key, localValue, {
+                        domain: '.mailsfinder.com',
+                        path: '/',
+                        maxAge: 60 * 60 * 24 * 7, // 7 days
+                        secure: window.location.protocol === 'https:',
+                        sameSite: 'Lax'
+                    });
+                    return localValue;
+                }
+                
+                return null;
             },
             setItem: (key, value) => {
-                // Store in localStorage
-                localStorage.setItem(key, value);
-                
-                // Also store in domain-wide cookie for cross-subdomain access
+                // Primary storage: domain-wide cookie for cross-subdomain access
                 setCookie(key, value, {
                     domain: '.mailsfinder.com',
                     path: '/',
                     maxAge: 60 * 60 * 24 * 7, // 7 days
-                    secure: true,
+                    secure: window.location.protocol === 'https:',
                     sameSite: 'Lax'
                 });
+                
+                // Backup: also store in localStorage for same-origin access
+                try {
+                    localStorage.setItem(key, value);
+                } catch (e) {
+                    console.warn('Failed to store in localStorage:', e);
+                }
             },
             removeItem: (key) => {
-                localStorage.removeItem(key);
+                // Remove from both cookie and localStorage
                 deleteCookie(key, { domain: '.mailsfinder.com', path: '/' });
+                try {
+                    localStorage.removeItem(key);
+                } catch (e) {
+                    console.warn('Failed to remove from localStorage:', e);
+                }
             }
         }
     }
@@ -42,32 +72,93 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 
 // Cookie utility functions for cross-subdomain session persistence
 function setCookie(name, value, options = {}) {
-    let cookieString = `${encodeURIComponent(name)}=${encodeURIComponent(value)}`;
-    
-    if (options.domain) cookieString += `; Domain=${options.domain}`;
-    if (options.path) cookieString += `; Path=${options.path}`;
-    if (options.maxAge) cookieString += `; Max-Age=${options.maxAge}`;
-    if (options.secure) cookieString += '; Secure';
-    if (options.sameSite) cookieString += `; SameSite=${options.sameSite}`;
-    
-    document.cookie = cookieString;
+    try {
+        let cookieString = `${encodeURIComponent(name)}=${encodeURIComponent(value)}`;
+        
+        if (options.domain) cookieString += `; Domain=${options.domain}`;
+        if (options.path) cookieString += `; Path=${options.path}`;
+        if (options.maxAge) cookieString += `; Max-Age=${options.maxAge}`;
+        if (options.secure) cookieString += '; Secure';
+        if (options.sameSite) cookieString += `; SameSite=${options.sameSite}`;
+        
+        document.cookie = cookieString;
+        console.log(`[Cookie] Set: ${name} with domain ${options.domain}`);
+    } catch (error) {
+        console.error(`[Cookie] Failed to set ${name}:`, error);
+    }
 }
 
 function getCookie(name) {
-    const nameEQ = encodeURIComponent(name) + '=';
-    const cookies = document.cookie.split(';');
-    
-    for (let cookie of cookies) {
-        cookie = cookie.trim();
-        if (cookie.indexOf(nameEQ) === 0) {
-            return decodeURIComponent(cookie.substring(nameEQ.length));
+    try {
+        const nameEQ = encodeURIComponent(name) + '=';
+        const cookies = document.cookie.split(';');
+        
+        for (let cookie of cookies) {
+            cookie = cookie.trim();
+            if (cookie.indexOf(nameEQ) === 0) {
+                const value = decodeURIComponent(cookie.substring(nameEQ.length));
+                return value;
+            }
         }
+    } catch (error) {
+        console.error(`[Cookie] Failed to get ${name}:`, error);
     }
     return null;
 }
 
 function deleteCookie(name, options = {}) {
-    setCookie(name, '', { ...options, maxAge: -1 });
+    try {
+        setCookie(name, '', { ...options, maxAge: -1 });
+        console.log(`[Cookie] Deleted: ${name} with domain ${options.domain}`);
+    } catch (error) {
+        console.error(`[Cookie] Failed to delete ${name}:`, error);
+    }
+}
+
+// Global sign-out function that clears all session data across domains
+function globalSignOut() {
+    try {
+        console.log('[Auth] Starting global sign-out...');
+        
+        // Clear all Supabase session cookies
+        const supabaseKeys = [
+            'sb-wbcfsffssphgvpnbrvve-auth-token',
+            'supabase.auth.token',
+            'sb-auth-token'
+        ];
+        
+        supabaseKeys.forEach(key => {
+            deleteCookie(key, { domain: '.mailsfinder.com', path: '/' });
+            try {
+                localStorage.removeItem(key);
+            } catch (e) {
+                console.warn(`Failed to remove ${key} from localStorage:`, e);
+            }
+        });
+        
+        // Clear custom session data
+        const customKeys = [
+            'mailsfinder_user_cache',
+            'mailsfinder_session_backup',
+            'mailsfinder_auth_state',
+            'forceAuthUpdate'
+        ];
+        
+        customKeys.forEach(key => {
+            deleteCookie(key, { domain: '.mailsfinder.com', path: '/' });
+            try {
+                localStorage.removeItem(key);
+            } catch (e) {
+                console.warn(`Failed to remove ${key} from localStorage:`, e);
+            }
+        });
+        
+        console.log('[Auth] Global sign-out completed');
+        return true;
+    } catch (error) {
+        console.error('[Auth] Error during global sign-out:', error);
+        return false;
+    }
 }
 
 // User management functions for custom profiles table
