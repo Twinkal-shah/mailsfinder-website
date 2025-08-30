@@ -928,13 +928,13 @@
             
             if (error) {
                 console.error('[Auth] Error getting session for dashboard redirect:', error);
-                window.location.href = 'https://app.mailsfinder.com/login';
+                window.location.href = 'login.html';
                 return;
             }
             
             if (!session) {
                 console.log('[Auth] No session found, redirecting to login');
-                window.location.href = 'https://app.mailsfinder.com/login';
+                window.location.href = 'login.html';
                 return;
             }
             
@@ -947,7 +947,7 @@
             console.error('[Auth] Error during dashboard redirect:', error);
             
             // Redirect to login as fallback
-            window.location.href = 'https://app.mailsfinder.com/login';
+            window.location.href = 'login.html';
         }
     }
 
